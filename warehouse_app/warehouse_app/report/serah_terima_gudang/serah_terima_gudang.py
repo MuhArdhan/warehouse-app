@@ -82,6 +82,10 @@ def get_columns():
 		{"label": "Box 2", "fieldname": "box_2", "fieldtype": "Float", "width": 90},
 		{"label": "Status Papan", "fieldname": "status_papan", "fieldtype": "Data", "width": 120},
 		{"label": "Status MR", "fieldname": "status_mr", "fieldtype": "Data", "width": 110},
+		# W4: kolom Aksi display-only (tanpa nilai di data); tombol dirender
+		# serah_terima_gudang.js. Harus ada di kolom server — injeksi kolom
+		# dari JS hilang saat refresh datatable (lihat catatan di .js).
+		{"label": "Aksi", "fieldname": "aksi", "fieldtype": "Data", "width": 140},
 	]
 
 
