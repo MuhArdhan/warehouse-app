@@ -30,9 +30,15 @@ Gate: SE draft berisi sisa; submit native sukses; over-qty ditolak native; bucke
 Depends: W3. `…/warehouse_app/workspace/gudang/gudang.json`: public + roles [Gudang Barang Jadi], shortcut report + list MR/SE + Stock Balance; content header sederhana.
 Gate: workspace terlihat role gudang & System Manager, tak terlihat user lain (cek API desktop); tersinkron 6 container (pipeline deploy AGENTS.md).
 
-## W6 — E2E walkthrough + residu 0 + guard perm (Fase E) — PENDING
-Depends: W3-W5. Walkthrough browser (fixture user, bukan akun asli): papan → SE → submit → papan update. Residu fixture = 0 (dokumen uji, user uji, Sessions/Activity Log). Guard R7/R6: `Custom DocPerm` parent "Company" identik baseline tercatat di `warehouse_app/tests/guard.py` (12 baris pre-existing — bukan nol absolut) + Stock User masih read Company pasca-migrate.
-Gate: bukti walkthrough + hasil query residu & guard tercatat di `PROJECT_STATE.md`.
+## W6 — E2E walkthrough + residu 0 + guard perm (Fase E) — DONE (2026-09-20)
+- Walkthrough browser end-to-end sebagai fixture user `zztest-w6@example.com` (Gudang Barang Jadi + Stock User, bukan akun asli): login → nav "Gudang" tampil → workspace "Gudang — Papan Serah Terima" (4 shortcut) → papan "Serah Terima Gudang" render data nyata produksi + fixture (chip Belum Dikirim/Sebagian/Terkirim, kolom WO & Box display-only, tanpa valuasi) → tombol "Buat Stock Entry" membuka SE draf via mapper native (Material Transfer, qty=sisa, gudang benar) → Save+Submit `MAT-STE-2026-07047` sukses → papan otomatis pindah bucket "Terkirim" & tombol hilang. Bukti screenshot: `/tmp/w6-screens/`.
+- Temuan & perbaikan (commit `a070259`, hasil review independen + verifikasi eksekusi):
+  1. Nav atas /desk dirender dari **Desktop Icon → Workspace Sidebar** — tanpa keduanya grup "Gudang" tidak muncul walau workspace diizinkan (`boot.workspace_sidebar_item` memuat, tapi render butuh ikon). Fix: json `workspace_sidebar/gudang/gudang.json` + `upgrade.py` idempoten (`ensure_workspace_sidebar` + `ensure_desktop_icon`, after_install/after_migrate) — pola `production_app.upgrade.ensure_desktop_icon`.
+  2. Default filter Link harus nama eksak: "Gudang Barang Jadi" ditolak client ("Warehouse … not found"); diganti "Gudang Barang Jadi - ROPI" (`resolve_warehouse` tetap menerima bentuk tanpa abbr).
+  3. Guard residu buta terhadap Item bernama auto (site memakai Item naming series — name/item_code dioverride; ITEM00248 "ZZTEST W3 Gate Item" lolos guard lama). Fix: hitung/sweep juga via `item_name` (prefix + varian spasi).
+  4. File stray package-level `workspace_sidebar/gudang.json` (drift di container; AppleDouble dari docker cp macOS bisa menggugurkan migrate) dihapus dari 6 container; pipeline sync kini menyertakan pembersihan `._*`.
+- Guard final pasca-teardown `ok: true` — residu ZZTEST-W semuanya 0; Custom DocPerm Company = 12 baris baseline identik (nol dari warehouse_app); Stock User read Company = 1. 6 container sinkron + restart + ping pong.
+- Catatan rough edge native (pre-existing, tidak memblokir, tidak di-fix di sini): toast "No permission for Stock Settings" saat user non-admin membuka form Stock Entry di Desk.
 
 ## W7 — Company read utk Gudang Barang Jadi — DITUTUP (2026-09-20, keputusan user)
 User memutuskan: **user gudang dipasangkan role `Stock User`** (SOP, nol kode — Stock User memang punya read Company, `company.json:1078-1080`). Tidak akan dieksekusi sebagai kode; entri disimpan untuk riwayat. Bila kelak kebijakan berubah ke single-role, desain fallback (`frappe.permissions.add_permission` additive-only) tetap ada di `IMPLEMENTATION_PLAN.md` §7.

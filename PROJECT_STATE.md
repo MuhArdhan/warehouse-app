@@ -1,5 +1,5 @@
 # PROJECT_STATE — warehouse_app
 
-Head: 2026-09-20 — Planning fitur pertama selesai: `IMPLEMENTATION_PLAN.md` (keputusan terkunci: Desk-first, endpoint dormant tidak dipindah, fitur pertama = papan serah terima, perm mengikuti fitur; rulings advisor R1–R10; verifikasi source v16 §4). Task: W1–W2 DONE, W3–W6 PENDING (Fase B–E), W7–W8 PARKIR.
-Next: **W3** — Script Report "Serah Terima Gudang" (dependency-ready; desain & gate di `IMPLEMENTATION_PLAN.md` §5 Fase B, eksekusi subagent + code-reviewer sebelum commit).
-Keputusan user 2026-09-20 (sesi eksekusi): user gudang dipasangkan role `Stock User` — W7 ditutup tanpa kode (lihat `TASKS.md`).
+Head: 2026-09-20 — **Fitur pertama LIVE**: papan serah terima gudang (Script Report "Serah Terima Gudang" + aksi Buat Stock Entry + Workspace "Gudang") terpasang di site `frontend`, terverifikasi walkthrough browser end-to-end oleh fixture user role gudang. Commit: db5a85c (W3 report), 8ffb65b (W4 aksi), 251ca65 (W5 workspace), a070259 (fix temuan W6: Desktop Icon+Workspace Sidebar, guard item_name, default filter eksak). W2–W6 DONE, residu fixture 0 (guard ok), 6 container sinkron + ping pong. Rulings R1–R10 + tambahan eksekusi tercatat di `IMPLEMENTATION_PLAN.md`.
+Next: pemakaian nyata oleh user gudang (umpan balik); kandidat berikutnya (sesi planning terpisah): opname/counting, MR gudang ke produksi, SPA bila Desk mentok. Rough edge native tercatat: toast "No permission for Stock Settings" saat non-admin buka form SE (lihat `TASKS.md` W6).
+Keputusan user 2026-09-20: user gudang dipasangkan role `Stock User` — W7 ditutup tanpa kode. W8 (smoke test endpoint dormant production_app) masih PARKIR.
