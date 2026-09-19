@@ -34,8 +34,8 @@ Gate: workspace terlihat role gudang & System Manager, tak terlihat user lain (c
 Depends: W3-W5. Walkthrough browser (fixture user, bukan akun asli): papan → SE → submit → papan update. Residu fixture = 0 (dokumen uji, user uji, Sessions/Activity Log). Guard R7/R6: `Custom DocPerm` parent "Company" tetap kosong + Stock User masih read Company pasca-migrate.
 Gate: bukti walkthrough + hasil query residu & guard tercatat di `PROJECT_STATE.md`.
 
-## W7 — Company read utk Gudang Barang Jadi (PARKIR)
-Trigger: user memutuskan gudang single-role tanpa Stock User. `frappe.permissions.add_permission` (Company saja, additive-only, idempotent) di `after_migrate` + test replacement-trap. Default: tidak dieksekusi (SOP pairing Stock User).
+## W7 — Company read utk Gudang Barang Jadi — DITUTUP (2026-09-20, keputusan user)
+User memutuskan: **user gudang dipasangkan role `Stock User`** (SOP, nol kode — Stock User memang punya read Company, `company.json:1078-1080`). Tidak akan dieksekusi sebagai kode; entri disimpan untuk riwayat. Bila kelak kebijakan berubah ke single-role, desain fallback (`frappe.permissions.add_permission` additive-only) tetap ada di `IMPLEMENTATION_PLAN.md` §7.
 
 ## W8 — Smoke test endpoint dormant production_app (PARKIR, non-W2)
 Trigger: kapan pun setelah W6. Panggil `create_request`/`cancel_request`/`fulfill_form_order` (production_app) dengan fixture, pastikan tak membusuk, bersihkan residu.
