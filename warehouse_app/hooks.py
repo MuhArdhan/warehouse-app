@@ -5,6 +5,12 @@ app_description = "Gudang (warehouse) operations, separate from production_app"
 app_email = "ropierpnext@gmail.com"
 app_license = "mit"
 
+# Installation
+# ------------------
+after_install = "warehouse_app.upgrade.apply"
+after_migrate = ["warehouse_app.upgrade.apply"]
+
+
 # Apps
 # ------------------
 

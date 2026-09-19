@@ -58,6 +58,13 @@ def count_residue(prefix=PREFIX):
 			"Item",
 			{"item_code": ("like", like), "name": ("not like", like)},
 		),
+		# name/item_code bisa dioverride naming series & rename bisa gagal
+		# (temuan W6: ITEM00248 "ZZTEST W3 Gate Item" lolos dua cek di atas) —
+		# item_name adalah jejak yang pasti; cakup prefix sendiri + varian
+		# ber-spasi ("ZZTEST W...") agar gate lain yang sedang berjalan tidak
+		# ikut terhitung.
+		"Item by item_name": frappe.db.count("Item", {"item_name": ("like", like)})
+		+ frappe.db.count("Item", {"item_name": ("like", prefix.replace("-", " ") + "%")}),
 		"Material Request": frappe.db.count("Material Request", {"name": ("like", like)}),
 		"Stock Entry": frappe.db.count("Stock Entry", {"name": ("like", like)}),
 		"User": frappe.db.count("User", {"name": ("like", like)}),

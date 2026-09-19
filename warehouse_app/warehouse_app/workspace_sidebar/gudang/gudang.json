@@ -1,0 +1,17 @@
+{
+ "doctype": "Workspace Sidebar",
+ "name": "Gudang",
+ "title": "Gudang",
+ "app": "warehouse_app",
+ "standard": 1,
+ "items": [
+  {
+   "doctype": "Workspace Sidebar Item",
+   "label": "Gudang",
+   "link_to": "Gudang",
+   "link_type": "Workspace",
+   "type": "Link",
+   "idx": 1
+  }
+ ]
+}

@@ -211,6 +211,33 @@ def _run_gate(check):
     ours = sorted(frappe.get_all("Workspace", filters={"app": APP}, pluck="name"))
     check("workspace_app_scope", ours == [WORKSPACE], f"Workspace app {APP}!r={ours}")
 
+    # --- Ikon nav /desk (Desktop Icon) yang menunjuk grup sidebar Gudang ---
+    # Nav atas /desk dirender dari Desktop Icon link_type "Workspace Sidebar"
+    # (temuan W6: tanpa ikon ini, grup Gudang ada di boot tapi tak dirender).
+    try:
+        from warehouse_app.upgrade import ensure_desktop_icon
+
+        ensure_desktop_icon()
+        icon = frappe.db.get_value(
+            "Desktop Icon",
+            {"label": WORKSPACE},
+            ["link_type", "link_to", "app"],
+            as_dict=1,
+        )
+        ok = bool(
+            icon
+            and icon.link_type == "Workspace Sidebar"
+            and icon.link_to == WORKSPACE
+            and icon.app == APP
+        )
+        check(
+            "desktop_icon_gudang",
+            ok,
+            f"icon={(icon.link_type, icon.link_to, icon.app) if icon else None}",
+        )
+    except Exception as e:
+        check("desktop_icon_gudang", False, f"{type(e).__name__}: {str(e)[:180]}")
+
     # --- Visibilitas via API desktop native + fixture user 1 buah ---
     if not (frappe.db.exists("Role", ROLE)):
         return
@@ -275,6 +302,23 @@ def _run_gate(check):
             has_g,
             f"roles={frappe.get_roles(USER_EMAIL)}; pages={names}",
         )
+        # 2b) Item sidebar yang BENAR-BENAR dirender Desk (boot.workspace_sidebar_item).
+        # get_workspaces hanya membuktikan izin workspace; grup sidebar hanya tampil
+        # bila ada Workspace Sidebar yang ber-item menunjuk workspace itu
+        # (frappe/boot.py:442-496 get_sidebar_items + is_item_allowed per item).
+        try:
+            from frappe.boot import get_sidebar_items
+
+            sidebars = get_sidebar_items(names)
+            found = sorted(
+                f"{title}:{it.get('label')}"
+                for title, grp in sidebars.items()
+                for it in grp.get("items", [])
+                if it.get("link_type") == "Workspace" and it.get("link_to") == WORKSPACE
+            )
+            check("sidebar_item_gudang", bool(found), f"item={found or 'tidak ada'}")
+        except Exception as e2:
+            check("sidebar_item_gudang", False, f"{type(e2).__name__}: {str(e2)[:180]}")
     except Exception as e:
         check("sidebar_visible_with_role", False, f"{type(e).__name__}: {str(e)[:180]}")
 

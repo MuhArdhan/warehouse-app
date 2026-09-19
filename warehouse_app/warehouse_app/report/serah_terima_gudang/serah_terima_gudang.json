@@ -7,7 +7,7 @@
  "doctype": "Report",
  "filters": [
   {
-   "default": "Gudang Barang Jadi",
+   "default": "Gudang Barang Jadi - ROPI",
    "fieldname": "gudang_tujuan",
    "fieldtype": "Link",
    "label": "Gudang Tujuan",

@@ -419,10 +419,17 @@ def _sweep():
 	safe("SLE", lambda: frappe.db.delete("Stock Ledger Entry", {"item_code": ("like", PREFIX + "%")}))
 	safe("Repost", lambda: frappe.db.delete("Repost Item Valuation", {"item_code": ("like", PREFIX + "%")}))
 	safe("Bin", lambda: frappe.db.delete("Bin", {"item_code": ("like", PREFIX + "%")}))
-	# Item: situs memakai naming series, jadi cocokkan name ATAU item_code.
+	# Item: situs memakai naming series, jadi cocokkan name ATAU item_code;
+	# tambah item_name (dash & spasi) — rename bisa gagal dan meninggalkan
+	# item bernama auto dengan item_name ber-prefix (temuan W6: ITEM00248).
 	for name in frappe.get_all(
 		"Item",
-		or_filters={"name": ("like", PREFIX + "%"), "item_code": ("like", PREFIX + "%")},
+		or_filters=[
+			["Item", "name", "like", PREFIX + "%"],
+			["Item", "item_code", "like", PREFIX + "%"],
+			["Item", "item_name", "like", PREFIX + "%"],
+			["Item", "item_name", "like", PREFIX.replace("-", " ") + "%"],
+		],
 		pluck="name",
 	):
 		safe(f"Item {name}", lambda n=name: frappe.delete_doc("Item", n, force=1, ignore_missing=True))
