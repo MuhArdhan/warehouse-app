@@ -80,6 +80,7 @@ Desain report:
 
 ### Fase D — Workspace "Warehouse App" (W5)
 - Create `…/warehouse_app/workspace/gudang/gudang.json` (folder workspace per pola v16): `public: 1`, `roles: [Gudang Barang Jadi]`, `app: "warehouse_app"`, shortcut: report Serah Terima Gudang + list Material Request (filter Material Transfer) + list Stock Entry + link Stock Balance. Content blok header sederhana.
+- **Keputusan eksekusi W5 (2026-09-20, eskalasi orchestrator):** field `module` di gudang.json = **"Stock"** (modul native asal Material Request/Stock Entry), bukan "Warehouse App" — sidebar desktop menolak workspace bila `doc.module` tidak ada di `allow_modules` user, dan `allow_modules` dibangun murni dari modul DocType yang bisa dibaca user (`frappe/desk/desktop.py:40-43`, `frappe/utils/user.py:157-178`); app ini nol custom doctype sehingga modul "Warehouse App" tak pernah masuk (bukti: probe gate W5 — module "Warehouse App" → workspace tak tampak; "Stock" → tampak). Preceden: workspace "Production App" di site ini ber-module "Manufacturing". Kepemilikan tetap tercatat di field `app`; caveat: bila kelak app di-uninstall, workspace ini tidak ikut terhapus via mekanisme modul — hapus manual.
 
 **Gate D (eksekusi):** setelah migrate, workspace muncul di sidebar user role gudang & System Manager; shortcut berfungsi; user tanpa role tidak melihatnya (cek API desktop); JSON workspace tersinkron ke 6 container (pipeline deploy AGENTS.md).
 
