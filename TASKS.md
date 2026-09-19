@@ -10,4 +10,4 @@ Custom app untuk org gudang (finished-goods warehouse). Keputusan FU57 (producti
 - Heal utang lama (side effect W1): container queue/scheduler/websocket tidak pernah punya kode `production_app` (ModuleNotFoundError tiap boot worker sejak image dibangun). Kode + .pth production_app kini disalin ke 4 container itu. Sisa pre-existing, tidak diketuk: `pos_next`, `bakery_manufacturing`, `email_delivery_service` juga tidak ada di container queue (error non-fatal, worker tetap jalan).
 
 ## Next
-- Menunggu arah fitur gudang dari user (belum ada doctype/API/UI).
+- Sesi planning fitur pertama — konteks & batasan di `AGENTS.md` (scope terbuka: bentuk UI, fitur inti, pindah/pisah dari alur produksi). Belum ada doctype/API/UI.
