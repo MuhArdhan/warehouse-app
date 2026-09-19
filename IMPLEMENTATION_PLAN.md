@@ -66,6 +66,7 @@ Files (modul "Warehouse App", folder modul `warehouse_app/warehouse_app/`):
 
 Desain report:
 - JSON: `report_type: "Script Report"`, `ref_doctype: "Material Request"`, `is_standard: "Yes"`, `module: "Warehouse App"`, roles: `Gudang Barang Jadi`, `Stock Manager`.
+- **Keputusan eksekusi W3 (2026-09-20, ruling orchestrator):** `ref_doctype` diubah menjadi **"Stock Entry"** — gerbang perm native `query_report.run` (`frappe/desk/query_report.py:40-45`) menuntut ptype `report` pada ref_doctype, sedangkan Custom DocPerm Material Request (pemilik production_app, R7) men-set `report=0` untuk semua role gudang (bukti: PermissionError "You don't have permission to get a report on: Material Request" pada gate W3). Stock Entry dipilih karena Custom DocPerm SE ber-`report=1` untuk Stock User; data papan tetap Material Request; nol perubahan DocPerm; reversible satu field JSON.
 - Query (server-side Python): MR Item `docstatus=1` join MR `docstatus=1`, `material_request_type="Material Transfer"`, `t_warehouse` = filter **Gudang Tujuan** (default `"Gudang Barang Jadi"` — default filter, bukan logika hardcoded; nilai lain tinggal pilih dropdown). Tanpa filter pada field custom apa pun.
 - Bucket status: `ordered_qty==0` → "Belum Dikirim"; `0<per_ordered<100` → "Sebagian"; `per_ordered==100` → "Terkirim". Kolom native `status` MR ditampilkan apa adanya (termasuk "Stopped" — SOP R9).
 - Kolom: MR (link), Tanggal, Work Order (display-only, boleh kosong), Item Code/Name, Qty Diminta (`stock_qty`), Sudah Dikirim (`ordered_qty`), Sisa, UOM, Gudang Tujuan, Box 1/Box 2 (dari MR header, display-only), Status Papan, Status MR. **Qty-only, tanpa valuasi.**
@@ -83,7 +84,7 @@ Desain report:
 **Gate D (eksekusi):** setelah migrate, workspace muncul di sidebar user role gudang & System Manager; shortcut berfungsi; user tanpa role tidak melihatnya (cek API desktop); JSON workspace tersinkron ke 6 container (pipeline deploy AGENTS.md).
 
 ### Fase E — E2E & kebersihan (W6)
-Walkthrough UI di browser sesi utama (fixture user, bukan akun asli): papan → buat SE → submit → papan update. Lalu: residu fixture = 0 (dokumen uji cancel+delete, user uji, Sessions/Activity Log) dan guard R7/R6: query `Custom DocPerm` parent "Company" **harus tetap kosong** + `Stock User` masih punya read Company pasca-migrate.
+Walkthrough UI di browser sesi utama (fixture user, bukan akun asli): papan → buat SE → submit → papan update. Lalu: residu fixture = 0 (dokumen uji cancel+delete, user uji, Sessions/Activity Log) dan guard R7/R6: `Custom DocPerm` parent "Company" **identik baseline tercatat** di `warehouse_app/tests/guard.py` — 12 baris pre-existing (9× 2022-01-25, 2× Feb-2026 Administrator; 1× "ALL ROLE" 2026-09-08 ropierpnext@gmail.com), nol dari warehouse_app; re-scope reviewer pasca-W3 karena premis "harus tetap kosong" tidak cocok realitas situs (guard false permanen / menggoda hapus perm milik pihak lain — langgar R7) + `Stock User` masih punya read Company pasca-migrate.
 
 **Gate E (eksekusi):** bukti walkthrough (screenshot/log fetch) + hasil query residu = 0 + hasil guard tercatat di `PROJECT_STATE.md`.
 

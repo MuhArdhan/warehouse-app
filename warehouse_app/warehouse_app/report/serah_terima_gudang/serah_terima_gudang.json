@@ -1,0 +1,40 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2026-09-20 08:00:00.000000",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "default": "Gudang Barang Jadi",
+   "fieldname": "gudang_tujuan",
+   "fieldtype": "Link",
+   "label": "Gudang Tujuan",
+   "options": "Warehouse",
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "json": "{}",
+ "letter_head": "",
+ "letterhead": null,
+ "modified": "2026-09-20 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Warehouse App",
+ "name": "Serah Terima Gudang",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Stock Entry",
+ "report_name": "Serah Terima Gudang",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Gudang Barang Jadi"
+  },
+  {
+   "role": "Stock Manager"
+  }
+ ]
+}

@@ -31,7 +31,7 @@ Depends: W3. `…/warehouse_app/workspace/gudang/gudang.json`: public + roles [G
 Gate: workspace terlihat role gudang & System Manager, tak terlihat user lain (cek API desktop); tersinkron 6 container (pipeline deploy AGENTS.md).
 
 ## W6 — E2E walkthrough + residu 0 + guard perm (Fase E) — PENDING
-Depends: W3-W5. Walkthrough browser (fixture user, bukan akun asli): papan → SE → submit → papan update. Residu fixture = 0 (dokumen uji, user uji, Sessions/Activity Log). Guard R7/R6: `Custom DocPerm` parent "Company" tetap kosong + Stock User masih read Company pasca-migrate.
+Depends: W3-W5. Walkthrough browser (fixture user, bukan akun asli): papan → SE → submit → papan update. Residu fixture = 0 (dokumen uji, user uji, Sessions/Activity Log). Guard R7/R6: `Custom DocPerm` parent "Company" identik baseline tercatat di `warehouse_app/tests/guard.py` (12 baris pre-existing — bukan nol absolut) + Stock User masih read Company pasca-migrate.
 Gate: bukti walkthrough + hasil query residu & guard tercatat di `PROJECT_STATE.md`.
 
 ## W7 — Company read utk Gudang Barang Jadi — DITUTUP (2026-09-20, keputusan user)
