@@ -15,6 +15,7 @@
 let WZRQ_FILTERS = []; // [{field, operator, value(array utk between)}]
 let WZRQ_FIELD_META = null;
 let WZRQ_VISIBLE = null; // key kolom terlihat (persist di localStorage)
+let WZRQ_QTY_UOM = null; // uom kolom Qty (persist di localStorage)
 
 frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
@@ -38,6 +39,7 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 			</button>
 			<button class="btn btn-default wzrq-refresh">${__('Refresh')}</button>
 			<div class="wzrq-bulk">
+				<select class="form-control wzrq-uom" title="${__('Qty unit')}"></select>
 				<span class="wzrq-bulk-count text-muted"></span>
 				<button class="btn btn-primary wzrq-bulk-request" disabled>${__('Create Request')}</button>
 				<button class="btn btn-default wzrq-bulk-clear" style="display:none">${__('Clear')}</button>
@@ -179,6 +181,16 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		wzrq_update_bulk($main_page, selected);
 	});
 
+	// ganti uom kolom Qty: preferensi tampilan saja — render ulang tanpa fetch.
+	// tbody dirender ulang polos: kosongkan `selected` agar tidak basi
+	// (counter/bulk jalan-jalan dengan WO yang checkboxnya sudah hilang).
+	$main.on('change', '.wzrq-uom', function () {
+		selected.clear();
+		WZRQ_QTY_UOM = this.value;
+		wzrq_store('wzrq_qty_uom', WZRQ_QTY_UOM);
+		wzrq_render($main_page, wzrq_rows($main_page));
+	});
+
 	// --- pencarian & filter ---
 	$search.on('keydown', (e) => {
 		if (e.which === 13 || e.key === 'Enter') {
@@ -288,7 +300,9 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 			})
 			.get();
 		wzrq_set_visible_columns(checked);
-		// render ulang tanpa fetch — data baris masih ada di scope
+		// render ulang tanpa fetch — data baris masih ada di scope; tbody
+		// dirender polos, jadi `selected` ikut dikosongkan (pola .wzrq-uom)
+		selected.clear();
 		wzrq_render($main_page, wzrq_rows($main_page));
 	});
 
@@ -463,14 +477,22 @@ const WZRQ_ALL_COLUMNS = [
 		cell: (r) => `<span class="wzrq-adonan">${r.custom_adonan_ke ? wzrq_esc(r.custom_adonan_ke) : '—'}</span>`,
 	},
 	{ key: 'item', label: __('Item'), cls: 'wzrq-col-item', cell: (r) => wzrq_esc(r.item_name) },
+	{ key: 'item_code', label: __('Item Code'), cls: 'wzrq-col-item-code', cell: (r) => wzrq_esc(r.production_item || '') },
 	{
 		key: 'qty',
 		label: __('Qty'),
 		cls: 'wzrq-col-qty',
-		cell: (r) => `${Number(r.produced_qty || 0).toLocaleString('en-US')} <span class="text-muted">${wzrq_esc(r.stock_uom)}</span>`,
+		cell: (r) => {
+			// uom terpilih per baris: display -> expected units, selain itu stock
+			if (wzrq_is_display_uom(r, WZRQ_QTY_UOM || '')) {
+				return `${Number(r.expected_units != null ? r.expected_units : 0).toLocaleString('en-US')} <span class="text-muted">${wzrq_esc(r.display_uom)}</span>`;
+			}
+			return `${Number(r.produced_qty || 0).toLocaleString('en-US')} <span class="text-muted">${wzrq_esc(r.stock_uom)}</span>`;
+		},
 	},
 	{ key: 'wo', label: __('Work Order'), cls: 'wzrq-col-wo', cell: (r) => wzrq_esc(r.name) },
 	{ key: 'warehouse', label: __('Warehouse'), cls: 'wzrq-col-warehouse', cell: (r) => wzrq_esc(r.fg_warehouse || '') },
+	{ key: 'created', label: __('Created'), cls: 'wzrq-col-created', cell: (r) => wzrq_esc(r.creation ? frappe.datetime.str_to_user(r.creation) : '') },
 	{
 		key: 'status',
 		label: __('Status'),
@@ -508,14 +530,78 @@ function wzrq_set_visible_columns(keys) {
 	}
 }
 
+function wzrq_store(key, value) {
+	try {
+		localStorage.setItem(key, value);
+	} catch (e) {
+		/* private mode: abaikan */
+	}
+}
+
+function wzrq_load(key) {
+	try {
+		return localStorage.getItem(key) || '';
+	} catch (e) {
+		return '';
+	}
+}
+
+// union uom baris termuat: stock dulu, lalu display — dedup, urutan stabil
+function wzrq_uom_options(rows) {
+	const opts = [];
+	rows.forEach((r) => {
+		if (r.stock_uom && !opts.includes(r.stock_uom)) {
+			opts.push(r.stock_uom);
+		}
+	});
+	rows.forEach((r) => {
+		if (r.display_uom && !opts.includes(r.display_uom)) {
+			opts.push(r.display_uom);
+		}
+	});
+	return opts;
+}
+
+// baris tampil dalam display UOM hanya bila konversinya valid dan uom
+// terpilih = display uom baris itu; selain itu (termasuk factor tak
+// valid / uom tak dikenal baris) -> fallback stock
+function wzrq_is_display_uom(r, uom) {
+	const factor = Number(r.display_conversion_factor);
+	return !!(r.display_uom && r.display_uom !== r.stock_uom && isFinite(factor) && factor > 0 && uom === r.display_uom);
+}
+
+// segarkan opsi .wzrq-uom dari baris termuat + normalkan pilihan tersimpan
+// (tak ada di opsi -> default stock uom). Tanpa baris, opsi terakhir
+// dibiarkan. Mengembalikan uom aktif ('' bila belum ada).
+function wzrq_sync_uom_select($main, rows) {
+	if (WZRQ_QTY_UOM === null) {
+		WZRQ_QTY_UOM = wzrq_load('wzrq_qty_uom');
+	}
+	const $sel = $main.find('.wzrq-uom');
+	if (!$sel.length) {
+		return WZRQ_QTY_UOM;
+	}
+	if (rows.length) {
+		const opts = wzrq_uom_options(rows);
+		if (!WZRQ_QTY_UOM || !opts.includes(WZRQ_QTY_UOM)) {
+			WZRQ_QTY_UOM = opts[0];
+			wzrq_store('wzrq_qty_uom', WZRQ_QTY_UOM);
+		}
+		$sel.html(opts.map((o) => `<option value="${wzrq_esc(o)}">${wzrq_esc(o)}</option>`).join(''));
+	}
+	$sel.val(WZRQ_QTY_UOM);
+	return WZRQ_QTY_UOM;
+}
+
 function wzrq_render($scope, rows) {
 	$scope.data('wzrq_rows', rows);
 	const $main = $scope.find('.layout-main');
+	const uom = wzrq_sync_uom_select($main, rows);
 	const cols = wzrq_visible_columns().map((key) => WZRQ_ALL_COLUMNS.find((c) => c.key === key));
 	$main.find('.wzrq-table thead tr').html(
 		`<th class="wzrq-col-check"><input type="checkbox" class="wzrq-check-all" aria-label="${__('Select all')}" /></th>` +
 			cols
-				.map((c) => `<th class="${c.cls}">${c.label}</th>`)
+				.map((c) => `<th class="${c.cls}">${c.key === 'qty' && uom ? __('Qty ({0})', [wzrq_esc(uom)]) : c.label}</th>`)
 				.join('') +
 			`<th class="wzrq-col-aksi"><button type="button" class="wzrq-cols-btn" title="${__('Choose columns')}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></button></th>`,
 	);
@@ -561,23 +647,31 @@ function wzrq_row_html(r, cols) {
 // ---------------- aksi
 
 // Dialog alokasi Box untuk N WO terpilih: satu baris per WO, prefilled
-// jumlah Box 1 = hasil WO (server tetap validator kebenaran — atomic).
+// jumlah Box 1 mengikuti uom qty terpilih (display -> expected units,
+// stock -> produced qty). Server tetap validator kebenaran — atomic.
 function bulk_dialog(wos, done) {
+	// uom input qty: preferensi tersimpan -> display uom baris pertama
+	let dialog_uom = wzrq_load('wzrq_dialog_uom');
+	const uom_opts = wzrq_uom_options(wos);
+	if (!uom_opts.includes(dialog_uom)) {
+		dialog_uom = (wos[0] && (wos[0].display_uom || wos[0].stock_uom)) || '';
+	}
+
 	const rows_html = wos
 		.map(
 			(r) => `
-			<tr data-wo="${wzrq_esc(r.name)}">
+			<tr data-wo="${wzrq_esc(r.name)}" data-factor="${wzrq_esc(r.display_conversion_factor || 1)}" data-item="${wzrq_esc(r.item_name || r.production_item || '')}" data-stock-uom="${wzrq_esc(r.stock_uom || '')}" data-display-uom="${wzrq_esc(r.display_uom || '')}">
 				<td class="wzrq-dt-wo">
 					<div class="wzrq-dt-title">${__('Batch')} <b>${wzrq_esc(r.custom_adonan_ke || '-')}</b> · ${wzrq_esc(r.item_name)}</div>
-					<div class="wzrq-dt-meta text-muted">${wzrq_esc(r.name)} · ${__('qty in {0}', [wzrq_esc(r.display_uom || r.stock_uom)])} · ${__('yield {0} {1}', [Number(r.produced_qty || 0).toLocaleString('en-US'), wzrq_esc(r.stock_uom)])}</div>
+					<div class="wzrq-dt-meta text-muted">${wzrq_esc(r.name)} · ${__('yield {0} {1}', [Number(r.produced_qty || 0).toLocaleString('en-US'), wzrq_esc(r.stock_uom)])}${r.display_uom && r.display_uom !== r.stock_uom ? ` · ${Number(r.expected_units != null ? r.expected_units : 0).toLocaleString('en-US')} ${wzrq_esc(r.display_uom)}` : ''}</div>
 				</td>
 				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-kg1" min="0" step="0.01" placeholder="kg" title="${__('Box 1 — kg')}" /></td>
-				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-qty1" min="0" step="1" value="${Number(r.expected_units != null ? r.expected_units : r.produced_qty || 0)}" title="${__('Box 1 — qty')}" /></td>
+				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-qty1" min="0" step="any" value="${wzrq_is_display_uom(r, dialog_uom) ? Number(r.expected_units != null ? r.expected_units : 0) : Math.round(Number(r.produced_qty || 0))}" title="${__('Box 1 — qty')}" /></td>
 				<td class="wzrq-dt-cell2">
 					<button type="button" class="btn btn-link wzrq-addbox2">+ ${__('Box 2')}</button>
 					<div class="wzrq-box2-inputs" style="display:none">
 						<input type="number" class="form-control wzrq-kg2" min="0" step="0.01" placeholder="kg" title="${__('Box 2 — kg')}" />
-						<input type="number" class="form-control wzrq-qty2" min="0" step="1" value="0" title="${__('Box 2 — qty')}" />
+						<input type="number" class="form-control wzrq-qty2" min="0" step="any" value="0" title="${__('Box 2 — qty')}" />
 					</div>
 				</td>
 			</tr>`
@@ -589,7 +683,10 @@ function bulk_dialog(wos, done) {
 		size: 'large',
 	});
 	d.$body.html(`
-		<p class="text-muted wzrq-dt-hint">${__('Box 1 is required. Box 2 is optional — click + Box 2 to add it.')}</p>
+		<p class="text-muted wzrq-dt-hint">
+			<span>${__('Box 1 is required. Box 2 is optional — click + Box 2 to add it.')}</span>
+			<span class="wzrq-dt-uom">${__('Qty in')} <select class="form-control wzrq-duom">${uom_opts.map((o) => `<option value="${wzrq_esc(o)}"${o === dialog_uom ? ' selected' : ''}>${wzrq_esc(o)}</option>`).join('')}</select></span>
+		</p>
 		<table class="wzrq-dtable">
 			<thead>
 				<tr>
@@ -610,13 +707,54 @@ function bulk_dialog(wos, done) {
 		$cell.find('.wzrq-box2-inputs').show().find('.wzrq-kg2').trigger('focus');
 	});
 
+	// ganti uom qty: KONVERSI nilai yang sudah diinput per baris
+	// (display = stock/factor, stock = display x factor) — jangan reset kerja user
+	d.$body.on('change', '.wzrq-duom', function () {
+		const next = this.value;
+		d.$body.find('.wzrq-dtable tbody tr').each(function () {
+			const $tr = $(this);
+			const factor = Number($tr.attr('data-factor'));
+			const f = isFinite(factor) && factor > 0 ? factor : 1;
+			const to_display = wzrq_tr_is_display($tr, next) && !wzrq_tr_is_display($tr, dialog_uom);
+			const to_stock = wzrq_tr_is_display($tr, dialog_uom) && !wzrq_tr_is_display($tr, next);
+			if (!to_display && !to_stock) {
+				return;
+			}
+			$tr.find('.wzrq-qty1, .wzrq-qty2').each(function () {
+				const v = parseFloat($(this).val());
+				if (!isFinite(v)) {
+					return; // input kosong dibiarkan kosong
+				}
+				$(this).val(String(wzrq_round3(to_display ? v / f : v * f)));
+			});
+		});
+		dialog_uom = next;
+		wzrq_store('wzrq_dialog_uom', next);
+	});
+
 	d.set_primary_action(__('Create Request'), () => submit_bulk(d, done));
 	d.show();
 }
 
+// varian wzrq_is_display_uom untuk baris dialog (data di atribut tr)
+function wzrq_tr_is_display($tr, uom) {
+	const disp = $tr.attr('data-display-uom') || '';
+	const stock = $tr.attr('data-stock-uom') || '';
+	const factor = Number($tr.attr('data-factor'));
+	return !!(disp && disp !== stock && isFinite(factor) && factor > 0 && uom === disp);
+}
+
+// bulatkan wajar maks 3 desimal tanpa nol ekor (96.5, bukan 96.500)
+function wzrq_round3(x) {
+	return Number(x.toFixed(3));
+}
+
 async function submit_bulk(d, done) {
+	// uom input qty dialog saat submit (mode per baris via atribut tr)
+	const uom = d.$body.find('.wzrq-duom').val() || '';
 	const payloads = [];
 	let invalid = null;
+	const not_whole = [];
 	d.$body.find('.wzrq-dtable tbody tr').each(function () {
 		if (invalid) {
 			return;
@@ -628,18 +766,46 @@ async function submit_bulk(d, done) {
 			invalid = $tr.attr('data-wo');
 			return;
 		}
+		// qty input (uom terpilih) -> integer display UOM: kontrak payload API
+		const factor = Number($tr.attr('data-factor'));
+		const f = isFinite(factor) && factor > 0 ? factor : 1;
+		const item = $tr.attr('data-item') || $tr.attr('data-wo');
+		const to_display_units = (raw) => {
+			if (wzrq_tr_is_display($tr, uom)) {
+				return parseInt(raw, 10);
+			}
+			const v = parseFloat(raw);
+			const x = v / f;
+			const whole = Math.round(x);
+			if (Math.abs(x - whole) > 1e-6) {
+				not_whole.push(
+					__('{0} Pcs is not a whole number of Packs for {1} (1 Pack = {2} Pcs)', [
+						v.toLocaleString('en-US'),
+						wzrq_esc(item),
+						wzrq_esc(f),
+					])
+				);
+				return null;
+			}
+			return whole;
+		};
+		const box_1_qty = to_display_units(q1);
 		// Box 2 hanya dikirim bila pasangan inputnya dimunculkan
 		let box_2 = 0;
 		let box_2_qty = 0;
 		if ($tr.find('.wzrq-box2-inputs').is(':visible')) {
 			const kg2 = $tr.find('.wzrq-kg2').val();
 			box_2 = kg2 === '' || kg2 === null ? 0 : parseFloat(kg2);
-			box_2_qty = parseInt($tr.find('.wzrq-qty2').val() || '0', 10) || 0;
+			const q2 = $tr.find('.wzrq-qty2').val();
+			box_2_qty = q2 === '' || q2 === null ? 0 : to_display_units(q2);
+		}
+		if (box_1_qty === null || box_2_qty === null) {
+			return; // sudah dicatat di not_whole — abort setelah loop
 		}
 		payloads.push({
 			work_order: $tr.attr('data-wo'),
 			box_1: parseFloat(kg1),
-			box_1_qty: parseInt(q1, 10),
+			box_1_qty,
 			box_2,
 			box_2_qty,
 		});
@@ -649,6 +815,18 @@ async function submit_bulk(d, done) {
 			title: __('Incomplete data'),
 			indicator: 'red',
 			message: __('Fill in Box 1 (kg and qty) for every row — check {0}.', [invalid]),
+		});
+		return;
+	}
+	if (not_whole.length) {
+		// input Pcs tidak membentuk Pack bulat: nol request terkirim
+		frappe.msgprint({
+			title: __('Invalid quantity'),
+			indicator: 'red',
+			message:
+				not_whole.length === 1
+					? not_whole[0]
+					: `<ul>${not_whole.map((m) => `<li>${m}</li>`).join('')}</ul>`,
 		});
 		return;
 	}

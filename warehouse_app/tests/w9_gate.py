@@ -26,6 +26,9 @@
 #
 # Fixture (prefix "ZZTEST-W9"): Item stok tanpa batch, WO (ignore_validate,
 # docstatus dinaikkan manual), SE Manufacture (lot batchless production_app).
+# SE fixture + assertion set_from_warehouse memakai POOL gudang asal yang
+# diikuti endpoint (setting custom_default_handover_source_warehouse, fallback
+# Gudang Produksi) — lihat preflight.
 # MR/SE/WO hasil endpoint memakai naming series native (MAT-*/MFG-*) — tidak
 # ber-prefix, jadi teardown melacak via item (SED/MRI/production_item) +
 # daftar nama yang tercipta saat run. Teardown lengkap di finally.
@@ -98,12 +101,28 @@ def _run_gate(check):
 	setting_target = frappe.db.get_single_value(
 		"Manufacturing Settings", "custom_default_handover_warehouse"
 	)
+	# W11: gudang asal serah terima bisa diatur user (Manufacturing Settings,
+	# halaman Settings gudang) dan pool lot batchless production_app mengikuti
+	# setting itu (R2). Gate ikut environment: pool = setting, kosong -> perilaku
+	# W9 (lot SE di Gudang Produksi). Setting menunjuk warehouse aneh -> gagal
+	# jujur di preflight, tidak di-skip.
+	pool = (
+		frappe.db.get_single_value(
+			"Manufacturing Settings", "custom_default_handover_source_warehouse"
+		)
+		or source
+	)
+	pool_ok = bool(
+		pool
+		and frappe.db.exists("Warehouse", pool)
+		and not frappe.db.get_value("Warehouse", pool, "is_group")
+	)
 	check(
 		"preflight",
-		bool(target and source and company and setting_target == target),
-		f"source={source!r}, target={target!r}, setting={setting_target!r}",
+		bool(target and source and company and setting_target == target and pool_ok),
+		f"source={source!r}, pool={pool!r}, target={target!r}, setting={setting_target!r}",
 	)
-	if not (target and source and company):
+	if not (target and source and company and pool_ok):
 		raise GateAborted()
 
 	uom = next((u for u in ("Nos", "Kg") if frappe.db.exists("UOM", u)), None)
@@ -180,7 +199,7 @@ def _run_gate(check):
 				"items": [
 					{
 						"item_code": ITEM_CODE,
-						"t_warehouse": source,
+						"t_warehouse": pool,
 						"qty": QTY,
 						"transfer_qty": QTY,
 						"stock_uom": uom,
@@ -196,7 +215,7 @@ def _run_gate(check):
 		se.flags.ignore_mandatory = True
 		se.submit()
 		TRACKED["se"].append(se.name)
-		check("fixture_se_manufacture", se.docstatus == 1, f"{se.name}: {QTY} {uom} -> {source}")
+		check("fixture_se_manufacture", se.docstatus == 1, f"{se.name}: {QTY} {uom} -> {pool}")
 	except Exception as e:
 		check("fixture_se_manufacture", False, f"{type(e).__name__}: {e}")
 		raise GateAborted()
@@ -327,7 +346,7 @@ def _run_gate(check):
 			res.get("ok")
 			and mr.docstatus == 1
 			and mr.material_request_type == "Material Transfer"
-			and mr.set_from_warehouse == source
+			and mr.set_from_warehouse == pool
 			and mr.set_warehouse == target
 			and mri.item_code == ITEM_CODE
 			and flt(mri.qty) == QTY

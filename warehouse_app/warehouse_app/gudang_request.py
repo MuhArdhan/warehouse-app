@@ -119,6 +119,7 @@ def requestable_work_orders(search=None, filters=None):
 		or_filters=or_filters,
 		fields=[
 			"name",
+			"creation",
 			"custom_adonan_ke",
 			"production_item",
 			"produced_qty",

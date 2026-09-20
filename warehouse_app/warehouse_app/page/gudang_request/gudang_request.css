@@ -32,6 +32,15 @@
 .wzrq-bulk-count {
 	white-space: nowrap;
 }
+/* pemilih uom kolom Qty — kluster kanan toolbar, tinggi selaras tombol */
+.wzrq-uom {
+	width: auto;
+	min-width: 84px;
+	height: 32px;
+	padding: 4px 8px;
+	font-size: 13px;
+	line-height: 20px;
+}
 
 /* tombol + panel filter ala list view erpnext */
 .wzrq-filter-btn svg {
@@ -250,6 +259,12 @@
 	color: var(--text-muted);
 	white-space: nowrap;
 }
+/* kolom tambahan pemilih kolom: kode item + tanggal dibuat */
+.wzrq-col-item-code,
+.wzrq-col-created {
+	color: var(--text-muted);
+	white-space: nowrap;
+}
 .wzrq-col-aksi {
 	width: 90px;
 	text-align: right;
@@ -344,8 +359,27 @@
 	vertical-align: middle;
 }
 .wzrq-dt-hint {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
 	margin: 0 0 10px;
 	font-size: 12px;
+}
+/* kontrol uom qty di kanan hint: kecil ala kontrol panel filter */
+.wzrq-dt-uom {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	white-space: nowrap;
+}
+.wzrq-dt-uom .form-control {
+	width: auto;
+	min-width: 76px;
+	height: 28px;
+	padding: 4px 8px;
+	font-size: 13px;
+	line-height: 20px;
 }
 .wzrq-dtable .wzrq-dt-wo {
 	min-width: 250px;
