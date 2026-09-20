@@ -5,9 +5,15 @@
 // Validasi box (kg + jumlah, harus tepat expected units) andalkan server:
 // atomic, fail-honest, pesan errornya langsung tampil sebagai toast.
 //
-// Revisi umpan balik user: tampilan tabel + checklist — pilih satu atau
-// beberapa WO sekaligus, lalu satu aksi "Buat Request" (dialog alokasi Box
-// per baris, prefilled jumlah = hasil WO).
+// Revisi umpan balik user: (1) tabel checklist — pilih satu/beberapa WO,
+// satu aksi "Buat Request" (dialog alokasi Box per baris, prefilled jumlah
+// = hasil WO); (2) panel filter ala list view ERPNext: baris
+// [Field][operator][Nilai] + Tambah Filter — field dibatasi whitelist
+// server (filter_fields), field Item virtual dicocokkan via nama/kode item.
+
+// state filter modul-level (satu instance page per sesi)
+let WZRQ_FILTERS = []; // [{field, operator, value}]
+let WZRQ_FIELD_META = null;
 
 frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
@@ -24,11 +30,23 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		<div class="wzrq-toolbar">
 			<input class="form-control wzrq-search" type="text"
 				placeholder="${__('Cari adonan / nama item / nomor WO...')}" />
+			<button class="btn btn-default wzrq-filter-btn">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+				${__('Filter')}
+				<span class="wzrq-filter-count"></span>
+			</button>
 			<button class="btn btn-default wzrq-refresh">${__('Muat Ulang')}</button>
 			<div class="wzrq-bulk">
 				<span class="wzrq-bulk-count text-muted"></span>
 				<button class="btn btn-primary btn-sm wzrq-bulk-request" disabled>${__('Buat Request')}</button>
 				<button class="btn btn-default btn-sm wzrq-bulk-clear" style="display:none">${__('Kosongkan')}</button>
+			</div>
+			<div class="wzrq-filter-pop" style="display:none">
+				<div class="wzrq-filter-rows"></div>
+				<div class="wzrq-filter-foot">
+					<button class="btn btn-link wzrq-filter-add">+ ${__('Tambah Filter')}</button>
+					<button class="btn btn-link text-muted wzrq-filter-clearall">${__('Hapus Semua Filter')}</button>
+				</div>
 			</div>
 		</div>
 		<div class="wzrq-table-wrap">
@@ -47,10 +65,10 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 				<tbody></tbody>
 			</table>
 			<div class="wzrq-empty text-muted" style="display:none">
-				${__('Tidak ada Work Order yang bisa diminta.')}
+				${__('Tidak ada Work Order yang cocok.')}
 			</div>
 			<div class="wzrq-limit text-muted" style="display:none">
-				${__('Menampilkan 50 Work Order terbaru — gunakan pencarian untuk mempersempit.')}
+				${__('Menampilkan 50 Work Order terbaru — persempit dengan filter atau pencarian.')}
 			</div>
 		</div>
 		<button class="btn btn-default wzrq-tweak-btn" title="${__('Pengaturan tampilan')}">
@@ -69,15 +87,19 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 	const $main_page = $(wrapper);
 	const $search = $main.find('.wzrq-search');
 	const selected = new Set();
+	let apply_timer = null;
 
 	function current_search() {
 		return $search.val() || '';
 	}
 
-	function load(search) {
+	function load() {
 		frappe.call({
 			method: 'warehouse_app.warehouse_app.gudang_request.requestable_work_orders',
-			args: { search: search || '' },
+			args: {
+				search: current_search(),
+				filters: JSON.stringify(active_filters()),
+			},
 			freeze: true,
 			freeze_message: __('Memuat Work Order...'),
 		}).then((r) => {
@@ -85,9 +107,18 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		});
 	}
 
+	function apply_soon() {
+		clearTimeout(apply_timer);
+		apply_timer = setTimeout(() => {
+			wzrq_collect_rows($main_page);
+			wzrq_update_filter_count($main_page);
+			load();
+		}, 300);
+	}
+
 	function reload() {
 		selected.clear();
-		load(current_search());
+		load();
 	}
 
 	// --- interaksi tabel ---
@@ -146,13 +177,71 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		wzrq_update_bulk($main_page, selected);
 	});
 
+	// --- pencarian & filter ---
 	$search.on('keydown', (e) => {
-		// frappe.ui.keyCode tidak ada di v16 — pakai kode Enter standar.
 		if (e.which === 13 || e.key === 'Enter') {
-			load(current_search());
+			load();
 		}
 	});
-	$main.find('.wzrq-refresh').on('click', () => load(current_search()));
+	$main.find('.wzrq-refresh').on('click', load);
+
+	const $pop = $main.find('.wzrq-filter-pop');
+	$main.find('.wzrq-filter-btn').on('click', function (e) {
+		e.stopPropagation();
+		wzrq_ensure_meta(() => {
+			wzrq_render_filter_rows($main);
+			$pop.toggle();
+		});
+	});
+	// JANGAN stopPropagation di $pop — handler ubah/tambah filter terikat
+	// delegated dari $main; cukup tutup popover hanya untuk klik di luar.
+	$(document).on('click.wzrq', (e) => {
+		if (!$(e.target).closest('.wzrq-filter-pop, .wzrq-filter-btn').length) {
+			$pop.hide();
+		}
+	});
+
+	$main.on('click', '.wzrq-filter-add', () => {
+		wzrq_ensure_meta(() => {
+			const first_field = Object.keys(WZRQ_FIELD_META)[0];
+			WZRQ_FILTERS.push({ field: first_field, operator: WZRQ_FIELD_META[first_field].operators[0], value: '' });
+			wzrq_render_filter_rows($main);
+		});
+	});
+
+	$main.on('click', '.wzrq-filter-clearall', () => {
+		WZRQ_FILTERS = [];
+		wzrq_render_filter_rows($main);
+		wzrq_update_filter_count($main_page);
+		load();
+	});
+
+	$pop.on('change', '.wzrq-ff', function () {
+		wzrq_collect_rows($main);
+		const idx = $(this).closest('.wzrq-filter-row').attr('data-idx');
+		const meta = WZRQ_FIELD_META[this.value];
+		WZRQ_FILTERS[idx].field = this.value;
+		WZRQ_FILTERS[idx].operator = meta.operators[0];
+		WZRQ_FILTERS[idx].value = '';
+		wzrq_render_filter_rows($main);
+		apply_soon();
+	});
+
+	$pop.on('change input', '.wzrq-fo, .wzrq-fv', function () {
+		const row = $(this).closest('.wzrq-filter-row');
+		const idx = row.attr('data-idx');
+		WZRQ_FILTERS[idx].operator = row.find('.wzrq-fo').val();
+		WZRQ_FILTERS[idx].value = row.find('.wzrq-fv').val() || '';
+		wzrq_update_filter_count($main_page);
+		apply_soon();
+	});
+
+	$pop.on('click', '.wzrq-fx', function () {
+		WZRQ_FILTERS.splice($(this).closest('.wzrq-filter-row').attr('data-idx'), 1);
+		wzrq_render_filter_rows($main);
+		wzrq_update_filter_count($main_page);
+		load();
+	});
 
 	// --- panel tampilan (kepadatan) ---
 	const $panel = $main.find('.wzrq-tweak-panel');
@@ -183,17 +272,110 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 // P2 review W9: muat ulang tiap kali halaman tampil lagi, supaya badge
 // "Diminta" tidak basi setelah navigasi pergi-pulang.
 frappe.pages['gudang_request'].on_page_show = function (wrapper) {
-	const $search = $(wrapper).find('.wzrq-search');
-	if (!$search.length) {
+	const $scope = $(wrapper);
+	if (!$scope.find('.wzrq-search').length) {
 		return;
 	}
 	frappe.call({
 		method: 'warehouse_app.warehouse_app.gudang_request.requestable_work_orders',
-		args: { search: $search.val() || '' },
+		args: {
+			search: $scope.find('.wzrq-search').val() || '',
+			filters: JSON.stringify(active_filters()),
+		},
 	}).then((r) => {
-		wzrq_render($(wrapper), (r.message && r.message.length && r.message) || []);
+		wzrq_render($scope, (r.message && r.message.length && r.message) || []);
 	});
 };
+
+// ---------------- filter ala list view ERPNext
+
+function active_filters() {
+	return WZRQ_FILTERS.filter((f) => String(f.value || '').trim() !== '');
+}
+
+function wzrq_ensure_meta(done) {
+	if (WZRQ_FIELD_META) {
+		done && done();
+		return;
+	}
+	frappe
+		.call({ method: 'warehouse_app.warehouse_app.gudang_request.filter_fields' })
+		.then((r) => {
+			WZRQ_FIELD_META = r.message || {};
+			done && done();
+		});
+}
+
+function wzrq_render_filter_rows($main) {
+	const $rows = $main.find('.wzrq-filter-rows');
+	if (!WZRQ_FILTERS.length) {
+		$rows.html(`<div class="text-muted wzrq-filter-none">${__('Belum ada filter')}</div>`);
+		return;
+	}
+	$rows.html(
+		WZRQ_FILTERS.map((f, i) => {
+			const meta = WZRQ_FIELD_META[f.field] || { operators: ['like'], fieldtype: 'Data' };
+			const field_opts = Object.keys(WZRQ_FIELD_META)
+				.map((fname) => `<option value="${wzrq_esc(fname)}"${fname === f.field ? ' selected' : ''}>${wzrq_esc(WZRQ_FIELD_META[fname].label)}</option>`)
+				.join('');
+			const op_opts = meta.operators
+				.map((op) => `<option value="${wzrq_esc(op)}"${op === f.operator ? ' selected' : ''}>${wzrq_esc(wzrq_op_label(op))}</option>`)
+				.join('');
+			let value_ctl;
+			if (meta.fieldtype === 'Select' && meta.options) {
+				value_ctl =
+					`<select class="form-control wzrq-fv"><option value="">—</option>` +
+					meta.options
+						.map((o) => `<option value="${wzrq_esc(o)}"${o === f.value ? ' selected' : ''}>${wzrq_esc(o)}</option>`)
+						.join('') +
+					`</select>`;
+			} else if (meta.fieldtype === 'Float') {
+				value_ctl = `<input type="number" class="form-control wzrq-fv" step="1" min="0" value="${wzrq_esc(f.value)}" />`;
+			} else {
+				value_ctl = `<input type="text" class="form-control wzrq-fv" value="${wzrq_esc(f.value)}" placeholder="${wzrq_esc(meta.placeholder || '')}" />`;
+			}
+			return `
+				<div class="wzrq-filter-row" data-idx="${i}">
+					<select class="form-control wzrq-ff">${field_opts}</select>
+					<select class="form-control wzrq-fo">${op_opts}</select>
+					${value_ctl}
+					<button class="btn btn-default wzrq-fx" title="${__('Hapus filter')}">×</button>
+				</div>`;
+		}).join(''),
+	);
+}
+
+function wzrq_op_label(op) {
+	const map = {
+		'=': '=',
+		'!=': '≠',
+		like: __('seperti'),
+		'not like': __('tidak seperti'),
+		'>=': '≥',
+		'<=': '≤',
+		'>': '>',
+		'<': '<',
+	};
+	return map[op] || op;
+}
+
+function wzrq_collect_rows($main) {
+	const rows = [];
+	$main.find('.wzrq-filter-row').each(function () {
+		rows.push({
+			field: $(this).find('.wzrq-ff').val(),
+			operator: $(this).find('.wzrq-fo').val(),
+			value: $(this).find('.wzrq-fv').val() || '',
+		});
+	});
+	WZRQ_FILTERS = rows;
+}
+
+function wzrq_update_filter_count($scope) {
+	const n = active_filters().length;
+	$scope.find('.wzrq-filter-count').text(n ? `(${n})` : '');
+	$scope.find('.wzrq-filter-btn').toggleClass('wzrq-filter-active', n > 0);
+}
 
 // ---------------- helpers render (global: dipakai on_page_load & on_page_show)
 

@@ -284,6 +284,29 @@ def _run_gate(check):
 			len(found) == 1 and not _wo_in(none_found),
 			f"search cocok={len(found)}, search bogus menemukan fixture={_wo_in(none_found)}",
 		)
+
+		# --- Filter ala list view (whitelist server) ---
+		res_filter = requestable_work_orders(
+			filters=json.dumps([{"field": "custom_adonan_ke", "operator": "=", "value": ADONAN}])
+		)
+		res_item = requestable_work_orders(
+			filters=json.dumps([{"field": "production_item", "operator": "like", "value": "ZZTEST W9"}])
+		)
+		res_bogus = requestable_work_orders(
+			filters=json.dumps([{"field": "custom_adonan_ke", "operator": "=", "value": "TIDAK-ADA-99"}])
+		)
+		check(
+			"picker_filter",
+			_wo_in(res_filter) and _wo_in(res_item) and not _wo_in(res_bogus),
+			f"filter adonan cocok={_wo_in(res_filter)}, filter item cocok={_wo_in(res_item)}, nilai bogus kosong={not _wo_in(res_bogus)}",
+		)
+		try:
+			requestable_work_orders(
+				filters=json.dumps([{"field": "bogus_field", "operator": "=", "value": "x"}])
+			)
+			check("picker_filter_whitelist", False, "field di luar whitelist TIDAK ditolak!")
+		except frappe.ValidationError as e:
+			check("picker_filter_whitelist", True, f"ValidationError: {str(e)[:120]}")
 	except Exception as e:
 		check("picker_lists_wo", False, f"{type(e).__name__}: {e}")
 		frappe.set_user("Administrator")

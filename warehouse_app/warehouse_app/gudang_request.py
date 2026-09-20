@@ -9,14 +9,74 @@
 # ringkasan WO (custom_handover_material_request + box), nol duplikasi logika
 # (ruling W9 Opsi A). Gudang punya read Work Order (Stock User / Gudang
 # Barang Jadi), jadi get_list polos tanpa bypass perm.
+#
+# Filter ala list view ERPNext (permintaan user): panel [Field][operator]
+# [nilai]. Field dibatasi whitelist FILTER_FIELDS — get_list tetap
+# parameterized + perm user ditegakkan, jadi tidak ada jalur injection;
+# "Item" adalah field virtual yang di-expand ke production_item via
+# pencarian nama/kode item (bahasa gudang adalah nama item).
+
+import json
 
 import frappe
+from frappe.utils import flt
 
 STATUS_TERBLOKIR = ("Stopped", "Closed", "Cancelled")
 
+FILTER_FIELDS = {
+	"custom_adonan_ke": {
+		"label": "Adonan",
+		"fieldtype": "Data",
+		"operators": ["=", "!="],
+	},
+	"production_item": {
+		"label": "Item",
+		"fieldtype": "Link",
+		"operators": ["like", "="],
+		"placeholder": "nama atau kode item",
+	},
+	"status": {
+		"label": "Status Work Order",
+		"fieldtype": "Select",
+		"operators": ["=", "!="],
+	},
+	"name": {
+		"label": "Nomor Work Order",
+		"fieldtype": "Data",
+		"operators": ["like", "="],
+	},
+	"produced_qty": {
+		"label": "Hasil",
+		"fieldtype": "Float",
+		"operators": [">=", "<=", "="],
+	},
+	"fg_warehouse": {
+		"label": "Gudang Hasil",
+		"fieldtype": "Link",
+		"operators": ["like", "="],
+		"placeholder": "mis. Gudang Produksi",
+	},
+}
+
 
 @frappe.whitelist()
-def requestable_work_orders(search=None):
+def filter_fields():
+	"""Meta panel filter untuk client: field + operator + opsi select."""
+	meta = frappe.get_meta("Work Order")
+	out = {}
+	for fname, cfg in FILTER_FIELDS.items():
+		entry = dict(cfg)
+		df = meta.get_field(fname)
+		if df and df.fieldtype == "Select":
+			entry["options"] = [
+				o for o in (df.options or "").split("\n") if o and not o.startswith("#")
+			]
+		out[fname] = entry
+	return out
+
+
+@frappe.whitelist()
+def requestable_work_orders(search=None, filters=None):
 	"""Daftar WO siap-diminta untuk user gudang: adonan + item + produced qty.
 
 	- WO submitted, bukan Stopped/Closed/Cancelled, produced qty > 0.
@@ -24,8 +84,10 @@ def requestable_work_orders(search=None):
 	  Stopped, belum ada SE submitted) — semantik _active_mr_now production_app
 	  tapi HANYA untuk tampilan; keputusan final tetap di endpoint
 	  create_request (throw duplikat di bawah row lock).
+	- `filters`: JSON list [{field, operator, value}] — field wajib ada di
+	  whitelist FILTER_FIELDS; nilai kosong dilewati.
 	"""
-	filters = [
+	filters_base = [
 		["docstatus", "=", 1],
 		["status", "not in", list(STATUS_TERBLOKIR)],
 		["produced_qty", ">", 0],
@@ -43,9 +105,12 @@ def requestable_work_orders(search=None):
 			["production_item", "in", items or [""]],
 		]
 
+	for flt in _parse_filters(filters):
+		filters_base.append(flt)
+
 	rows = frappe.get_list(
 		"Work Order",
-		filters=filters,
+		filters=filters_base,
 		or_filters=or_filters,
 		fields=[
 			"name",
@@ -54,6 +119,7 @@ def requestable_work_orders(search=None):
 			"produced_qty",
 			"stock_uom",
 			"status",
+			"fg_warehouse",
 			"custom_handover_material_request",
 		],
 		order_by="creation desc",
@@ -79,6 +145,69 @@ def requestable_work_orders(search=None):
 		)
 
 	return rows
+
+
+def _parse_filters(filters):
+	"""JSON [{field, operator, value}] -> get_list filters tervalidasi.
+
+	Field "production_item" dicocokkan via nama/kode item (virtual); sisanya
+	lolos apa adanya — get_list memakai parameter binding, perm user tetap
+	ditegakkan.
+	"""
+	if not filters:
+		return []
+	try:
+		parsed = json.loads(filters) if isinstance(filters, str) else filters
+	except (ValueError, TypeError):
+		frappe.throw(frappe._("Format filter tidak valid"))
+	if not isinstance(parsed, list):
+		frappe.throw(frappe._("Format filter tidak valid"))
+
+	out = []
+	for f in parsed:
+		if isinstance(f, dict):
+			field, operator, value = f.get("field"), f.get("operator"), f.get("value")
+		else:
+			field = f[0] if len(f) > 0 else None
+			operator = f[1] if len(f) > 1 else None
+			value = f[2] if len(f) > 2 else None
+		cfg = FILTER_FIELDS.get(field)
+		if not cfg or operator not in cfg["operators"]:
+			frappe.throw(
+				frappe._("Filter tidak didukung: {0} {1}").format(
+					frappe.bold(str(field)), frappe.bold(str(operator))
+				)
+			)
+		if value is None or str(value).strip() == "":
+			continue
+		if field == "production_item":
+			out.extend(_item_filter(operator, str(value).strip()))
+			continue
+		if cfg["fieldtype"] in ("Float", "Int"):
+			value = flt(value)
+		out.append([field, operator, value])
+	return out
+
+
+def _item_filter(operator, value):
+	"""Filter Item dalam bahasa gudang: nama ATAU kode item."""
+	if operator == "=":
+		pat = value
+		items = frappe.get_all(
+			"Item",
+			or_filters=[["name", "=", pat], ["item_name", "=", pat]],
+			pluck="name",
+			limit=0,
+		)
+	else:
+		pat = f"%{value}%"
+		items = frappe.get_all(
+			"Item",
+			or_filters=[["name", "like", pat], ["item_name", "like", pat]],
+			pluck="name",
+			limit=0,
+		)
+	return [["production_item", "in", items or [""]]]
 
 
 def _active_request_map(rows):
