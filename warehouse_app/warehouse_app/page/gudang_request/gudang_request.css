@@ -1,36 +1,192 @@
-/* W9: styling minimal halaman request serah terima ala-gudang. */
+/* W9: styling halaman request serah terima — tabel checklist penuh lebar.
+   Semua warna pakai variabel tema frappe agar mengikuti light/dark mode. */
+
+/* layout-main Desk v16 = flex row; root tunggal ini full-width */
+.wzrq-root {
+	width: 100%;
+	min-width: 0;
+}
+
 .wzrq-toolbar {
 	display: flex;
+	align-items: center;
 	gap: 8px;
 	margin-bottom: 12px;
 }
 .wzrq-toolbar .wzrq-search {
-	max-width: 360px;
+	max-width: 440px;
 }
-.wzrq-card {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius);
-	padding: 10px 14px;
-	margin-bottom: 8px;
-	background: var(--card-bg);
-}
-.wzrq-title {
-	font-size: var(--text-base);
-}
-.wzrq-sub {
-	font-size: var(--text-sm);
-	margin-top: 2px;
+.wzrq-bulk {
+	margin-left: auto;
 	display: flex;
 	align-items: center;
 	gap: 8px;
 }
-.wzrq-badge {
-	margin-left: 4px;
+.wzrq-bulk-count {
+	white-space: nowrap;
 }
-.wzrq-actions {
-	flex-shrink: 0;
-	margin-left: 12px;
+
+.wzrq-table-wrap {
+	overflow: auto;
+}
+.wzrq-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+.wzrq-table thead th {
+	position: sticky;
+	top: 49px; /* tepat di bawah page-head Desk */
+	z-index: 1;
+	background: var(--card-bg);
+	text-align: left;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border-color);
+	white-space: nowrap;
+}
+.wzrq-table tbody td {
+	padding: 12px;
+	border-bottom: 1px solid var(--border-color);
+	vertical-align: middle;
+}
+.wzrq-table tbody tr:hover {
+	background: var(--control-bg);
+}
+.wzrq-table tbody tr {
+	cursor: pointer;
+}
+.wzrq-table tbody tr.is-active {
+	cursor: default;
+}
+.wzrq-table input[type='checkbox'] {
+	width: 15px;
+	height: 15px;
+	cursor: pointer;
+	accent-color: var(--primary, #2490ef);
+}
+.wzrq-table tr.is-active input[type='checkbox'] {
+	cursor: not-allowed;
+}
+
+/* kolom lane tetap agar baris lurus vertikal */
+.wzrq-col-check {
+	width: 36px;
+}
+.wzrq-col-adonan {
+	width: 90px;
+}
+.wzrq-col-qty {
+	width: 120px;
+	text-align: right;
+	white-space: nowrap;
+}
+.wzrq-col-wo {
+	width: 180px;
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+.wzrq-col-status {
+	width: 170px;
+	white-space: nowrap;
+}
+.wzrq-col-aksi {
+	width: 90px;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.wzrq-adonan {
+	font-size: 15px;
+	font-weight: 600;
+}
+.wzrq-col-item {
+	font-weight: 500;
+}
+
+.wzrq-empty,
+.wzrq-limit {
+	padding: 24px 12px;
+	font-size: 13px;
+}
+.wzrq-limit {
+	padding-top: 12px;
+}
+
+/* kepadatan (tweak panel) */
+.wzrq-compact .wzrq-table tbody td {
+	padding: 5px 12px;
+	font-size: 13px;
+}
+.wzrq-compact .wzrq-adonan {
+	font-size: 14px;
+}
+
+/* panel tweak mengambang */
+.wzrq-tweak-btn {
+	position: fixed;
+	right: 24px;
+	bottom: 24px;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border-radius: 50%;
+	box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.2));
+	z-index: 1050;
+}
+.wzrq-tweak-panel {
+	position: fixed;
+	right: 24px;
+	bottom: 70px;
+	min-width: 190px;
+	padding: 12px;
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.25));
+	z-index: 1050;
+}
+.wzrq-tweak-label {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+	margin-bottom: 6px;
+}
+.wzrq-density {
+	display: flex;
+}
+.wzrq-density .btn {
+	flex: 1;
+}
+
+/* dialog alokasi box massal */
+.wzrq-dtable {
+	width: 100%;
+	border-collapse: collapse;
+}
+.wzrq-dtable th {
+	text-align: left;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--border-color);
+	white-space: nowrap;
+}
+.wzrq-dtable td {
+	padding: 8px;
+	border-bottom: 1px solid var(--border-color);
+	vertical-align: middle;
+}
+.wzrq-dtable .wzrq-dt-wo {
+	min-width: 240px;
+}
+.wzrq-dtable .form-control {
+	min-width: 90px;
 }
