@@ -324,7 +324,7 @@
 	flex: 1;
 }
 
-/* dialog alokasi box massal */
+/* dialog alokasi box massal — satu baris header, Box 2 opsional */
 .wzrq-dtable {
 	width: 100%;
 	border-collapse: collapse;
@@ -338,28 +338,46 @@
 	border-bottom: 1px solid var(--border-color);
 	white-space: nowrap;
 }
-.wzrq-dtable .wzrq-dt-group {
-	text-align: center;
-	border-bottom: 1px solid var(--border-color);
-}
-.wzrq-dtable .wzrq-dt-sub {
-	text-align: center;
-}
-/* pemisah vertikal antara grup Box 1 dan Box 2: header grup (th ke-3
-   baris 1), sub-header (th ke-3 = kg Box 2), dan sel kg Box 2 di body */
-.wzrq-dtable thead tr:first-child th:nth-child(3),
-.wzrq-dtable thead tr:nth-child(2) th:nth-child(3),
-.wzrq-dtable td:nth-child(4) {
-	border-left: 1px solid var(--border-color);
-}
 .wzrq-dtable td {
-	padding: 8px;
+	padding: 10px 8px;
 	border-bottom: 1px solid var(--border-color);
 	vertical-align: middle;
 }
+.wzrq-dt-hint {
+	margin: 0 0 10px;
+	font-size: 12px;
+}
 .wzrq-dtable .wzrq-dt-wo {
-	min-width: 220px;
+	min-width: 250px;
+}
+.wzrq-dt-title {
+	font-weight: 600;
+}
+.wzrq-dt-meta {
+	font-size: 12px;
+	white-space: nowrap;
+	margin-top: 2px;
 }
 .wzrq-dtable .form-control {
-	min-width: 72px;
+	width: 100%;
+	min-width: 0;
+}
+.wzrq-dt-cell {
+	width: 110px;
+}
+.wzrq-dt-cell2 {
+	width: 200px;
+}
+.wzrq-box2-inputs {
+	display: flex;
+	gap: 6px;
+}
+.wzrq-box2-inputs .form-control {
+	flex: 1;
+}
+.wzrq-addbox2 {
+	padding: 0;
+	font-size: 12px;
+	height: 28px;
+	box-shadow: none;
 }

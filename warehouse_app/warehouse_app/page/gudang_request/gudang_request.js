@@ -568,13 +568,18 @@ function bulk_dialog(wos, done) {
 			(r) => `
 			<tr data-wo="${wzrq_esc(r.name)}">
 				<td class="wzrq-dt-wo">
-					<div>${__('Batch')} <b>${wzrq_esc(r.custom_adonan_ke || '-')}</b> — ${wzrq_esc(r.item_name)}</div>
-					<div class="text-muted">${wzrq_esc(r.name)} • ${Number(r.produced_qty || 0).toLocaleString('en-US')} ${wzrq_esc(r.stock_uom)}</div>
+					<div class="wzrq-dt-title">${__('Batch')} <b>${wzrq_esc(r.custom_adonan_ke || '-')}</b> · ${wzrq_esc(r.item_name)}</div>
+					<div class="wzrq-dt-meta text-muted">${wzrq_esc(r.name)} · ${Number(r.produced_qty || 0).toLocaleString('en-US')} ${wzrq_esc(r.stock_uom)}</div>
 				</td>
-				<td><input type="number" class="form-control wzrq-kg1" min="0" step="0.01" placeholder="kg" /></td>
-				<td><input type="number" class="form-control wzrq-qty1" min="0" step="1" value="${Number(r.produced_qty || 0)}" /></td>
-				<td><input type="number" class="form-control wzrq-kg2" min="0" step="0.01" placeholder="kg" /></td>
-				<td><input type="number" class="form-control wzrq-qty2" min="0" step="1" value="0" /></td>
+				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-kg1" min="0" step="0.01" placeholder="kg" title="${__('Box 1 — kg')}" /></td>
+				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-qty1" min="0" step="1" value="${Number(r.produced_qty || 0)}" title="${__('Box 1 — qty')}" /></td>
+				<td class="wzrq-dt-cell2">
+					<button type="button" class="btn btn-link wzrq-addbox2">+ ${__('Box 2')}</button>
+					<div class="wzrq-box2-inputs" style="display:none">
+						<input type="number" class="form-control wzrq-kg2" min="0" step="0.01" placeholder="kg" title="${__('Box 2 — kg')}" />
+						<input type="number" class="form-control wzrq-qty2" min="0" step="1" value="0" title="${__('Box 2 — qty')}" />
+					</div>
+				</td>
 			</tr>`
 		)
 		.join('');
@@ -584,24 +589,26 @@ function bulk_dialog(wos, done) {
 		size: 'large',
 	});
 	d.$body.html(`
-		<p class="text-muted">${__('Enter the weight (kg) for each box. Quantities are prefilled from the Work Order; the server validates each Work Order.')}</p>
+		<p class="text-muted wzrq-dt-hint">${__('Box 1 is required. Box 2 is optional — click + Box 2 to add it.')}</p>
 		<table class="wzrq-dtable">
 			<thead>
 				<tr>
-					<th rowspan="2">${__('Work Order')}</th>
-					<th colspan="2" class="wzrq-dt-group">${__('Box 1')}</th>
-					<th colspan="2" class="wzrq-dt-group">${__('Box 2')}</th>
-				</tr>
-				<tr>
-					<th class="wzrq-dt-sub">kg</th>
-					<th class="wzrq-dt-sub">${__('qty')}</th>
-					<th class="wzrq-dt-sub">kg</th>
-					<th class="wzrq-dt-sub">${__('qty')}</th>
+					<th class="wzrq-dt-wo">${__('Work Order')}</th>
+					<th>${__('Box 1 · kg')}</th>
+					<th>${__('Box 1 · qty')}</th>
+					<th>${__('Box 2 · optional')}</th>
 				</tr>
 			</thead>
 			<tbody>${rows_html}</tbody>
 		</table>
 	`);
+
+	// Box 2 opsional: munculkan pasangan input kg/qty saat diminta
+	d.$body.on('click', '.wzrq-addbox2', function () {
+		const $cell = $(this).closest('.wzrq-dt-cell2');
+		$(this).hide();
+		$cell.find('.wzrq-box2-inputs').show().find('.wzrq-kg2').trigger('focus');
+	});
 
 	d.set_primary_action(__('Create Request'), () => submit_bulk(d, done));
 	d.show();
@@ -617,18 +624,24 @@ async function submit_bulk(d, done) {
 		const $tr = $(this);
 		const kg1 = $tr.find('.wzrq-kg1').val();
 		const q1 = $tr.find('.wzrq-qty1').val();
-		const kg2 = $tr.find('.wzrq-kg2').val();
-		const q2 = $tr.find('.wzrq-qty2').val() || '0';
 		if (kg1 === '' || kg1 === null || q1 === '' || q1 === null) {
 			invalid = $tr.attr('data-wo');
 			return;
+		}
+		// Box 2 hanya dikirim bila pasangan inputnya dimunculkan
+		let box_2 = 0;
+		let box_2_qty = 0;
+		if ($tr.find('.wzrq-box2-inputs').is(':visible')) {
+			const kg2 = $tr.find('.wzrq-kg2').val();
+			box_2 = kg2 === '' || kg2 === null ? 0 : parseFloat(kg2);
+			box_2_qty = parseInt($tr.find('.wzrq-qty2').val() || '0', 10) || 0;
 		}
 		payloads.push({
 			work_order: $tr.attr('data-wo'),
 			box_1: parseFloat(kg1),
 			box_1_qty: parseInt(q1, 10),
-			box_2: kg2 === '' || kg2 === null ? 0 : parseFloat(kg2),
-			box_2_qty: parseInt(q2, 10) || 0,
+			box_2,
+			box_2_qty,
 		});
 	});
 	if (invalid) {
