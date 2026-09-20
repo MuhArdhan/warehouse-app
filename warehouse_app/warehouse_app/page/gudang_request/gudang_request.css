@@ -2,21 +2,26 @@
    (polos, tanpa card/pembungkus). Semua warna pakai variabel tema frappe
    agar mengikuti light/dark mode. */
 
-/* layout-main Desk v16 = flex row; root tunggal ini full-width */
+/* layout-main Desk v16 = flex row; root tunggal ini full-width.
+   Padding memberi nafas dari sidebar/tepi viewport — tanpa ini konten
+   menempel penuh ke pinggir (terlihat "mepet" di layar lebar). */
 .wzrq-root {
 	width: 100%;
 	min-width: 0;
+	max-width: 1600px;
+	padding: 16px 32px 56px;
+	margin: 0 auto;
 }
 
 .wzrq-toolbar {
 	position: relative; /* anchor popover filter */
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	margin-bottom: 12px;
+	gap: 10px;
+	margin-bottom: 16px;
 }
 .wzrq-toolbar .wzrq-search {
-	max-width: 320px;
+	max-width: 340px;
 }
 .wzrq-bulk {
 	margin-left: auto;
@@ -103,12 +108,12 @@
 	font-size: 12px;
 	font-weight: 600;
 	color: var(--text-muted);
-	padding: 8px 12px;
+	padding: 10px 14px;
 	border-bottom: 1px solid var(--border-color);
 	white-space: nowrap;
 }
 .wzrq-table tbody td {
-	padding: 10px 12px;
+	padding: 12px 14px;
 	border-bottom: 1px solid var(--border-color);
 	vertical-align: middle;
 }
@@ -138,10 +143,11 @@
 
 /* kolom lane tetap agar baris lurus vertikal */
 .wzrq-col-check {
-	width: 36px;
+	width: 44px;
+	padding-right: 0;
 }
 .wzrq-col-adonan {
-	width: 90px;
+	width: 100px;
 }
 .wzrq-col-qty {
 	width: 120px;
@@ -187,7 +193,7 @@
 
 /* kepadatan (tweak panel) */
 .wzrq-compact .wzrq-table tbody td {
-	padding: 5px 12px;
+	padding: 6px 14px;
 	font-size: 13px;
 }
 .wzrq-compact .wzrq-adonan {
