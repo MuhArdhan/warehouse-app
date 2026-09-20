@@ -12,6 +12,9 @@
 # `per_ordered` native header MR; tanpa doc_events, tanpa tulis apa pun (R3/R10).
 # Field custom production_app (`custom_work_order`, `custom_box_1/2`) dibaca
 # display-only dan TIDAK PERNAH jadi filter/status (R4). Qty-only, tanpa valuasi.
+# W9: kolom "Adonan" (WO.custom_adonan_ke via left join, display-only) —
+# bahasa utama gudang adalah adonan + item, bukan nomor WO; kolom WO tetap
+# ada untuk traceabilitat tapi digeser ke belakang kolom item.
 
 import frappe
 from frappe.utils import flt
@@ -39,9 +42,10 @@ def execute(filters=None):
 		select
 			mri.parent as material_request,
 			mr.transaction_date as transaction_date,
-			mri.custom_work_order as work_order,
+			wo.custom_adonan_ke as adonan,
 			mri.item_code as item_code,
 			mri.item_name as item_name,
+			mri.custom_work_order as work_order,
 			mri.stock_qty as qty_diminta,
 			mri.ordered_qty as qty_dikirim,
 			(mri.stock_qty - mri.ordered_qty) as qty_sisa,
@@ -53,6 +57,7 @@ def execute(filters=None):
 			mr.status as status_mr
 		from `tabMaterial Request Item` mri
 		inner join `tabMaterial Request` mr on mr.name = mri.parent
+		left join `tabWork Order` wo on wo.name = mri.custom_work_order
 		where {" and ".join(conditions)}
 		order by mr.transaction_date desc, mr.name, mri.idx
 		""",
@@ -70,9 +75,11 @@ def get_columns():
 	return [
 		{"label": "Material Request", "fieldname": "material_request", "fieldtype": "Link", "options": "Material Request", "width": 160},
 		{"label": "Tanggal", "fieldname": "transaction_date", "fieldtype": "Date", "width": 95},
-		{"label": "Work Order", "fieldname": "work_order", "fieldtype": "Link", "options": "Work Order", "width": 140},
-		{"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 160},
+		# W9: adonan + item name duluan — bahasa utama gudang.
+		{"label": "Adonan", "fieldname": "adonan", "fieldtype": "Data", "width": 80},
 		{"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 180},
+		{"label": "Item Code", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 160},
+		{"label": "Work Order", "fieldname": "work_order", "fieldtype": "Link", "options": "Work Order", "width": 140},
 		{"label": "Qty Diminta", "fieldname": "qty_diminta", "fieldtype": "Float", "width": 110},
 		{"label": "Sudah Dikirim", "fieldname": "qty_dikirim", "fieldtype": "Float", "width": 110},
 		{"label": "Sisa", "fieldname": "qty_sisa", "fieldtype": "Float", "width": 90},

@@ -1,0 +1,20 @@
+{
+ "doctype": "Page",
+ "name": "gudang_request",
+ "page_name": "gudang_request",
+ "title": "Request Serah Terima",
+ "module": "Warehouse App",
+ "standard": "Yes",
+ "system_page": 0,
+ "roles": [
+  {
+   "role": "Gudang Barang Jadi"
+  },
+  {
+   "role": "Stock User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}

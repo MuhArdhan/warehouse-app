@@ -1,7 +1,7 @@
 {
  "app": "warehouse_app",
  "charts": [],
- "content": "[{\"id\":\"GdnHdrMain1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Gudang — Papan Serah Terima</b></span>\",\"col\":12}},{\"id\":\"GdnScSerah1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Serah Terima Gudang\",\"col\":3}},{\"id\":\"GdnScMRList1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Material Request\",\"col\":3}},{\"id\":\"GdnScSEList1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Entry\",\"col\":3}},{\"id\":\"GdnScStkBal1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Balance\",\"col\":3}}]",
+ "content": "[{\"id\":\"GdnHdrMain1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Gudang — Papan Serah Terima</b></span>\",\"col\":12}},{\"id\":\"GdnScReq1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Request Serah Terima\",\"col\":3}},{\"id\":\"GdnScSerah1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Serah Terima Gudang\",\"col\":3}},{\"id\":\"GdnScMRList1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Material Request\",\"col\":3}},{\"id\":\"GdnScSEList1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Entry\",\"col\":3}},{\"id\":\"GdnScStkBal1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Stock Balance\",\"col\":3}}]",
  "creation": "2026-09-20 08:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -13,7 +13,7 @@
  "is_hidden": 0,
  "label": "Gudang",
  "links": [],
- "modified": "2026-09-20 11:00:00.000000",
+ "modified": "2026-09-20 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "Gudang",
@@ -30,6 +30,11 @@
  ],
  "sequence_id": 21.0,
  "shortcuts": [
+  {
+   "label": "Request Serah Terima",
+   "link_to": "gudang_request",
+   "type": "Page"
+  },
   {
    "label": "Serah Terima Gudang",
    "link_to": "Serah Terima Gudang",

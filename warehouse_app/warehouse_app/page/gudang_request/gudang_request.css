@@ -1,0 +1,36 @@
+/* W9: styling minimal halaman request serah terima ala-gudang. */
+.wzrq-toolbar {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+.wzrq-toolbar .wzrq-search {
+	max-width: 360px;
+}
+.wzrq-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius);
+	padding: 10px 14px;
+	margin-bottom: 8px;
+	background: var(--card-bg);
+}
+.wzrq-title {
+	font-size: var(--text-base);
+}
+.wzrq-sub {
+	font-size: var(--text-sm);
+	margin-top: 2px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.wzrq-badge {
+	margin-left: 4px;
+}
+.wzrq-actions {
+	flex-shrink: 0;
+	margin-left: 12px;
+}
