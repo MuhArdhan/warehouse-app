@@ -1,0 +1,39 @@
+/* W11: halaman Settings gudang serah terima.
+   Semua warna pakai variabel tema frappe agar ikut light/dark mode. */
+
+.wgs-root {
+	width: 100%;
+	min-width: 0;
+	max-width: 1600px;
+	padding: 16px 32px 56px;
+	margin: 0 auto;
+}
+.wgs-desc {
+	font-size: 13px;
+	margin: 4px 0 24px;
+}
+.wgs-form {
+	max-width: 560px;
+}
+.wgs-field {
+	margin-bottom: 20px;
+}
+.wgs-label {
+	display: block;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin-bottom: 6px;
+}
+.wgs-input {
+	max-width: 360px;
+	height: 30px;
+	font-size: 13px;
+}
+.wgs-help {
+	font-size: 12px;
+	margin: 6px 0 0;
+}
+.wgs-save {
+	min-width: 120px;
+}

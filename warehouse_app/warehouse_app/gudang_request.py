@@ -110,8 +110,8 @@ def requestable_work_orders(search=None, filters=None):
 			["production_item", "in", items or [""]],
 		]
 
-	for flt in _parse_filters(filters):
-		filters_base.append(flt)
+	for parsed_flt in _parse_filters(filters):
+		filters_base.append(parsed_flt)
 
 	rows = frappe.get_list(
 		"Work Order",
@@ -148,6 +148,24 @@ def requestable_work_orders(search=None, filters=None):
 		r.request_active = bool(
 			mr and docstatus == 1 and status != "Stopped" and mr not in mr_dikirim
 		)
+
+	# Satuan qty request mengikuti display UOM produksi (mis. Pcs -> Pack);
+	# logika konversi TIDAK diduplikasi — pakai _enrich_units production_app,
+	# sumber yang sama dengan validasi create_request. Fallback = stock qty.
+	try:
+		from production_app.api.work_order import _enrich_units
+
+		_enrich_units(rows)
+	except Exception:
+		for r in rows:
+			r.display_uom = r.stock_uom
+			r.display_conversion_factor = 1
+	for r in rows:
+		factor = flt(r.get("display_conversion_factor") or 1)
+		if factor <= 0:
+			factor = 1
+		r.expected_units = int(round(flt(r.produced_qty) / factor))
+		r.display_uom = r.get("display_uom") or r.stock_uom
 
 	return rows
 

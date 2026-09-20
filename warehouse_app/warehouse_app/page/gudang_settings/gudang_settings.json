@@ -1,0 +1,20 @@
+{
+ "doctype": "Page",
+ "name": "gudang_settings",
+ "page_name": "gudang_settings",
+ "title": "Settings",
+ "module": "Warehouse App",
+ "standard": "Yes",
+ "system_page": 0,
+ "roles": [
+  {
+   "role": "Gudang Barang Jadi"
+  },
+  {
+   "role": "Stock User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}

@@ -569,10 +569,10 @@ function bulk_dialog(wos, done) {
 			<tr data-wo="${wzrq_esc(r.name)}">
 				<td class="wzrq-dt-wo">
 					<div class="wzrq-dt-title">${__('Batch')} <b>${wzrq_esc(r.custom_adonan_ke || '-')}</b> · ${wzrq_esc(r.item_name)}</div>
-					<div class="wzrq-dt-meta text-muted">${wzrq_esc(r.name)} · ${Number(r.produced_qty || 0).toLocaleString('en-US')} ${wzrq_esc(r.stock_uom)}</div>
+					<div class="wzrq-dt-meta text-muted">${wzrq_esc(r.name)} · ${__('qty in {0}', [wzrq_esc(r.display_uom || r.stock_uom)])} · ${__('yield {0} {1}', [Number(r.produced_qty || 0).toLocaleString('en-US'), wzrq_esc(r.stock_uom)])}</div>
 				</td>
 				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-kg1" min="0" step="0.01" placeholder="kg" title="${__('Box 1 — kg')}" /></td>
-				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-qty1" min="0" step="1" value="${Number(r.produced_qty || 0)}" title="${__('Box 1 — qty')}" /></td>
+				<td class="wzrq-dt-cell"><input type="number" class="form-control wzrq-qty1" min="0" step="1" value="${Number(r.expected_units != null ? r.expected_units : r.produced_qty || 0)}" title="${__('Box 1 — qty')}" /></td>
 				<td class="wzrq-dt-cell2">
 					<button type="button" class="btn btn-link wzrq-addbox2">+ ${__('Box 2')}</button>
 					<div class="wzrq-box2-inputs" style="display:none">
