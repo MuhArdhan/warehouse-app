@@ -653,7 +653,10 @@ async function submit_bulk(d, done) {
 		return;
 	}
 
-	frappe.freeze(__('Creating handover requests...'));
+	// v16 new desk tidak punya frappe.freeze — matikan tombol saja selama
+	// submit supaya tidak dobel-klik (frappe.call error tetap tampil normal).
+	const $btn = d.$wrapper.find('.modal .btn-primary');
+	$btn.prop('disabled', true);
 	const ok_list = [];
 	const fail_list = [];
 	for (const p of payloads) {
@@ -667,8 +670,8 @@ async function submit_bulk(d, done) {
 			fail_list.push({ wo: p.work_order, error: wzrq_err_text(e) });
 		}
 	}
-	frappe.unfreeze();
 	d.hide();
+	$btn.prop('disabled', false);
 
 	if (fail_list.length) {
 		frappe.msgprint({
