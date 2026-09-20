@@ -25,7 +25,7 @@ STATUS_TERBLOKIR = ("Stopped", "Closed", "Cancelled")
 
 FILTER_FIELDS = {
 	"custom_adonan_ke": {
-		"label": "Adonan",
+		"label": "Batch",
 		"fieldtype": "Data",
 		"operators": ["=", "!="],
 	},
@@ -33,28 +33,28 @@ FILTER_FIELDS = {
 		"label": "Item",
 		"fieldtype": "Link",
 		"operators": ["like", "="],
-		"placeholder": "nama atau kode item",
+		"placeholder": "item name or code",
 	},
 	"status": {
-		"label": "Status Work Order",
+		"label": "Work Order Status",
 		"fieldtype": "Select",
 		"operators": ["=", "!="],
 	},
 	"name": {
-		"label": "Nomor Work Order",
+		"label": "Work Order No.",
 		"fieldtype": "Data",
 		"operators": ["like", "="],
 	},
 	"produced_qty": {
-		"label": "Hasil",
+		"label": "Yield",
 		"fieldtype": "Float",
 		"operators": [">=", "<=", "="],
 	},
 	"fg_warehouse": {
-		"label": "Gudang Hasil",
+		"label": "Finished Goods Warehouse",
 		"fieldtype": "Link",
 		"operators": ["like", "="],
-		"placeholder": "mis. Gudang Produksi",
+		"placeholder": "e.g. Gudang Produksi",
 	},
 }
 
@@ -185,6 +185,10 @@ def _parse_filters(filters):
 			continue
 		if cfg["fieldtype"] in ("Float", "Int"):
 			value = flt(value)
+		if operator == "like":
+			# get_list "like" tidak menambah wildcard — list view ERPNext
+			# juga membungkus %value% di sisi nilai.
+			value = f"%{str(value).strip()}%"
 		out.append([field, operator, value])
 	return out
 

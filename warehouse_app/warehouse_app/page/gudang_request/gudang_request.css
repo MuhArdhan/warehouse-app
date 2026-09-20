@@ -1,5 +1,6 @@
-/* W9: styling halaman request serah terima — tabel checklist penuh lebar.
-   Semua warna pakai variabel tema frappe agar mengikuti light/dark mode. */
+/* W9: styling halaman request serah terima — gaya list view native ERPNext
+   (polos, tanpa card/pembungkus). Semua warna pakai variabel tema frappe
+   agar mengikuti light/dark mode. */
 
 /* layout-main Desk v16 = flex row; root tunggal ini full-width */
 .wzrq-root {
@@ -15,7 +16,7 @@
 	margin-bottom: 12px;
 }
 .wzrq-toolbar .wzrq-search {
-	max-width: 440px;
+	max-width: 320px;
 }
 .wzrq-bulk {
 	margin-left: auto;
@@ -32,8 +33,8 @@
 	vertical-align: -2px;
 }
 .wzrq-filter-btn.wzrq-filter-active {
-	border-color: var(--primary, #2490ef);
-	color: var(--primary, #2490ef);
+	border-color: var(--primary);
+	color: var(--primary);
 }
 .wzrq-filter-pop {
 	position: absolute;
@@ -45,7 +46,7 @@
 	background: var(--card-bg);
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius);
-	box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.25));
+	box-shadow: var(--shadow-md);
 	padding: 12px;
 	z-index: 1030; /* di bawah modal (1050) */
 }
@@ -95,22 +96,19 @@
 	border-collapse: collapse;
 }
 .wzrq-table thead th {
-	position: sticky;
-	top: 49px; /* tepat di bawah page-head Desk */
-	z-index: 1;
-	background: var(--card-bg);
+	/* tanpa sticky: header ikut scroll (ala list view native) — sticky
+	   dengan top magic 49px rapuh terhadap layout Desk v16 */
+	background: var(--bg-color);
 	text-align: left;
-	font-size: 11px;
+	font-size: 12px;
 	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
 	color: var(--text-muted);
 	padding: 8px 12px;
 	border-bottom: 1px solid var(--border-color);
 	white-space: nowrap;
 }
 .wzrq-table tbody td {
-	padding: 12px;
+	padding: 10px 12px;
 	border-bottom: 1px solid var(--border-color);
 	vertical-align: middle;
 }
@@ -127,10 +125,15 @@
 	width: 15px;
 	height: 15px;
 	cursor: pointer;
-	accent-color: var(--primary, #2490ef);
+	accent-color: var(--primary);
 }
 .wzrq-table tr.is-active input[type='checkbox'] {
 	cursor: not-allowed;
+}
+.wzrq-table tbody tr:focus-visible,
+.wzrq-table input[type='checkbox']:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: -2px;
 }
 
 /* kolom lane tetap agar baris lurus vertikal */
@@ -165,13 +168,18 @@
 	font-weight: 600;
 }
 .wzrq-col-item {
-	font-weight: 500;
+	font-weight: 600;
+	color: var(--text-color);
 }
 
 .wzrq-empty,
 .wzrq-limit {
 	padding: 24px 12px;
 	font-size: 13px;
+}
+.wzrq-empty {
+	padding: 32px 12px;
+	text-align: center;
 }
 .wzrq-limit {
 	padding-top: 12px;
@@ -195,7 +203,7 @@
 	height: 36px;
 	padding: 0;
 	border-radius: 50%;
-	box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.2));
+	box-shadow: var(--shadow-sm);
 	z-index: 1050;
 }
 .wzrq-tweak-panel {
@@ -207,14 +215,12 @@
 	background: var(--card-bg);
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius);
-	box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.25));
+	box-shadow: var(--shadow-md);
 	z-index: 1050;
 }
 .wzrq-tweak-label {
-	font-size: 11px;
+	font-size: 12px;
 	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
 	color: var(--text-muted);
 	margin-bottom: 6px;
 }
@@ -232,13 +238,26 @@
 }
 .wzrq-dtable th {
 	text-align: left;
-	font-size: 11px;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	font-size: 12px;
+	font-weight: 600;
 	color: var(--text-muted);
 	padding: 6px 8px;
 	border-bottom: 1px solid var(--border-color);
 	white-space: nowrap;
+}
+.wzrq-dtable .wzrq-dt-group {
+	text-align: center;
+	border-bottom: 1px solid var(--border-color);
+}
+.wzrq-dtable .wzrq-dt-sub {
+	text-align: center;
+}
+/* pemisah vertikal antara grup Box 1 dan Box 2: header grup (th ke-3
+   baris 1), sub-header (th ke-3 = kg Box 2), dan sel kg Box 2 di body */
+.wzrq-dtable thead tr:first-child th:nth-child(3),
+.wzrq-dtable thead tr:nth-child(2) th:nth-child(3),
+.wzrq-dtable td:nth-child(4) {
+	border-left: 1px solid var(--border-color);
 }
 .wzrq-dtable td {
 	padding: 8px;
@@ -246,8 +265,8 @@
 	vertical-align: middle;
 }
 .wzrq-dtable .wzrq-dt-wo {
-	min-width: 240px;
+	min-width: 220px;
 }
 .wzrq-dtable .form-control {
-	min-width: 90px;
+	min-width: 72px;
 }

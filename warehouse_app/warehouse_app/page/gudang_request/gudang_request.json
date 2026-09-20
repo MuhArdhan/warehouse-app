@@ -2,7 +2,7 @@
  "doctype": "Page",
  "name": "gudang_request",
  "page_name": "gudang_request",
- "title": "Request Serah Terima",
+ "title": "Handover Requests",
  "module": "Warehouse App",
  "standard": "Yes",
  "system_page": 0,

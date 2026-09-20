@@ -18,7 +18,7 @@ let WZRQ_FIELD_META = null;
 frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __('Request Serah Terima'),
+		title: __('Handover Requests'),
 		single_column: true,
 	});
 
@@ -29,23 +29,23 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		<div class="wzrq-root">
 		<div class="wzrq-toolbar">
 			<input class="form-control wzrq-search" type="text"
-				placeholder="${__('Cari adonan / nama item / nomor WO...')}" />
+				placeholder="${__('Search batch, item, or work order...')}" />
 			<button class="btn btn-default wzrq-filter-btn">
 				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
 				${__('Filter')}
 				<span class="wzrq-filter-count"></span>
 			</button>
-			<button class="btn btn-default wzrq-refresh">${__('Muat Ulang')}</button>
+			<button class="btn btn-default wzrq-refresh">${__('Refresh')}</button>
 			<div class="wzrq-bulk">
 				<span class="wzrq-bulk-count text-muted"></span>
-				<button class="btn btn-primary btn-sm wzrq-bulk-request" disabled>${__('Buat Request')}</button>
-				<button class="btn btn-default btn-sm wzrq-bulk-clear" style="display:none">${__('Kosongkan')}</button>
+				<button class="btn btn-primary wzrq-bulk-request" disabled>${__('Create Request')}</button>
+				<button class="btn btn-default wzrq-bulk-clear" style="display:none">${__('Clear')}</button>
 			</div>
 			<div class="wzrq-filter-pop" style="display:none">
 				<div class="wzrq-filter-rows"></div>
 				<div class="wzrq-filter-foot">
-					<button class="btn btn-link wzrq-filter-add">+ ${__('Tambah Filter')}</button>
-					<button class="btn btn-link text-muted wzrq-filter-clearall">${__('Hapus Semua Filter')}</button>
+					<button class="btn btn-link wzrq-filter-add">+ ${__('Add Filter')}</button>
+					<button class="btn btn-link text-muted wzrq-filter-clearall">${__('Clear All Filters')}</button>
 				</div>
 			</div>
 		</div>
@@ -53,10 +53,10 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 			<table class="wzrq-table">
 				<thead>
 					<tr>
-						<th class="wzrq-col-check"><input type="checkbox" class="wzrq-check-all" aria-label="${__('Pilih semua')}" /></th>
-						<th class="wzrq-col-adonan">${__('Adonan')}</th>
+						<th class="wzrq-col-check"><input type="checkbox" class="wzrq-check-all" aria-label="${__('Select all')}" /></th>
+						<th class="wzrq-col-adonan">${__('Batch')}</th>
 						<th>${__('Item')}</th>
-						<th class="wzrq-col-qty">${__('Hasil')}</th>
+						<th class="wzrq-col-qty">${__('Yield')}</th>
 						<th class="wzrq-col-wo">${__('Work Order')}</th>
 						<th class="wzrq-col-status">${__('Status')}</th>
 						<th class="wzrq-col-aksi"></th>
@@ -65,20 +65,20 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 				<tbody></tbody>
 			</table>
 			<div class="wzrq-empty text-muted" style="display:none">
-				${__('Tidak ada Work Order yang cocok.')}
+				${__('No matching Work Orders. Try a different search or clear the filters.')}
 			</div>
 			<div class="wzrq-limit text-muted" style="display:none">
-				${__('Menampilkan 50 Work Order terbaru — persempit dengan filter atau pencarian.')}
+				${__('Showing the 50 most recent Work Orders — narrow with search or filters.')}
 			</div>
 		</div>
-		<button class="btn btn-default wzrq-tweak-btn" title="${__('Pengaturan tampilan')}">
+		<button class="btn btn-default wzrq-tweak-btn" title="${__('Display settings')}">
 			<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
 		</button>
 		<div class="wzrq-tweak-panel" style="display:none">
-			<div class="wzrq-tweak-label">${__('Kepadatan')}</div>
+			<div class="wzrq-tweak-label">${__('Density')}</div>
 			<div class="btn-group wzrq-density" role="group">
-				<button class="btn btn-default btn-sm wzrq-den-comfort">${__('Nyaman')}</button>
-				<button class="btn btn-default btn-sm wzrq-den-compact">${__('Padat')}</button>
+				<button class="btn btn-default btn-sm wzrq-den-comfort">${__('Comfort')}</button>
+				<button class="btn btn-default btn-sm wzrq-den-compact">${__('Compact')}</button>
 			</div>
 		</div>
 		</div>
@@ -101,7 +101,7 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 				filters: JSON.stringify(active_filters()),
 			},
 			freeze: true,
-			freeze_message: __('Memuat Work Order...'),
+			freeze_message: __('Loading Work Orders...'),
 		}).then((r) => {
 			wzrq_render($main_page, (r.message && r.message.length && r.message) || []);
 		});
@@ -309,7 +309,7 @@ function wzrq_ensure_meta(done) {
 function wzrq_render_filter_rows($main) {
 	const $rows = $main.find('.wzrq-filter-rows');
 	if (!WZRQ_FILTERS.length) {
-		$rows.html(`<div class="text-muted wzrq-filter-none">${__('Belum ada filter')}</div>`);
+		$rows.html(`<div class="text-muted wzrq-filter-none">${__('No filters')}</div>`);
 		return;
 	}
 	$rows.html(
@@ -339,7 +339,7 @@ function wzrq_render_filter_rows($main) {
 					<select class="form-control wzrq-ff">${field_opts}</select>
 					<select class="form-control wzrq-fo">${op_opts}</select>
 					${value_ctl}
-					<button class="btn btn-default wzrq-fx" title="${__('Hapus filter')}">×</button>
+					<button class="btn btn-default btn-sm wzrq-fx" title="${__('Remove filter')}">×</button>
 				</div>`;
 		}).join(''),
 	);
@@ -349,8 +349,8 @@ function wzrq_op_label(op) {
 	const map = {
 		'=': '=',
 		'!=': '≠',
-		like: __('seperti'),
-		'not like': __('tidak seperti'),
+		like: 'like',
+		'not like': 'not like',
 		'>=': '≥',
 		'<=': '≤',
 		'>': '>',
@@ -397,9 +397,9 @@ function wzrq_update_bulk($scope, selected) {
 	const selectable = rows.filter((r) => !r.request_active);
 	const n = selectable.filter((r) => selected.has(r.name)).length;
 	const $main = $scope.find('.layout-main');
-	$main.find('.wzrq-bulk-count').text(n ? __('{0} dipilih', [n]) : '');
+	$main.find('.wzrq-bulk-count').text(n ? __('{0} selected', [n]) : '');
 	$main.find('.wzrq-bulk-request').prop('disabled', !n);
-	$main.find('.wzrq-bulk-request').text(n ? __('Buat Request ({0})', [n]) : __('Buat Request'));
+	$main.find('.wzrq-bulk-request').text(n ? __('Create Request ({0})', [n]) : __('Create Request'));
 	$main.find('.wzrq-bulk-clear').toggle(n > 0);
 	$main
 		.find('.wzrq-check-all')
@@ -413,18 +413,19 @@ function wzrq_esc(value) {
 
 function wzrq_row_html(r) {
 	const active = r.request_active;
+	const mr = r.custom_handover_material_request;
 	const status = active
-		? `<span class="indicator orange">${__('Diminta')} ${wzrq_esc(r.custom_handover_material_request)}</span>`
-		: `<span class="text-muted">${wzrq_esc(r.status)}</span>`;
+		? `<span class="indicator-pill orange">${__('Requested')} · <a href="/app/material-request/${wzrq_esc(mr)}">${wzrq_esc(mr)}</a></span>`
+		: `<span class="indicator-pill blue">${wzrq_esc(r.status)}</span>`;
 	const aksi = active
-		? `<button class="btn btn-xs btn-default wzrq-cancel" data-mr="${wzrq_esc(r.custom_handover_material_request)}">${__('Batalkan')}</button>`
+		? `<button class="btn btn-xs btn-default wzrq-cancel" data-mr="${wzrq_esc(mr)}">${__('Cancel')}</button>`
 		: '';
 	return `
 		<tr class="wzrq-row${active ? ' is-active' : ''}" data-wo="${wzrq_esc(r.name)}">
 			<td class="wzrq-col-check"><input type="checkbox" class="wzrq-check"${active ? ' disabled' : ''} aria-label="${wzrq_esc(r.name)}" /></td>
 			<td class="wzrq-col-adonan"><span class="wzrq-adonan">${r.custom_adonan_ke ? wzrq_esc(r.custom_adonan_ke) : '—'}</span></td>
 			<td class="wzrq-col-item">${wzrq_esc(r.item_name)}</td>
-			<td class="wzrq-col-qty">${Number(r.produced_qty || 0).toLocaleString('id-ID')} <span class="text-muted">${wzrq_esc(r.stock_uom)}</span></td>
+			<td class="wzrq-col-qty">${Number(r.produced_qty || 0).toLocaleString('en-US')} <span class="text-muted">${wzrq_esc(r.stock_uom)}</span></td>
 			<td class="wzrq-col-wo">${wzrq_esc(r.name)}</td>
 			<td class="wzrq-col-status">${status}</td>
 			<td class="wzrq-col-aksi">${aksi}</td>
@@ -441,8 +442,8 @@ function bulk_dialog(wos, done) {
 			(r) => `
 			<tr data-wo="${wzrq_esc(r.name)}">
 				<td class="wzrq-dt-wo">
-					<div>${__('Adonan')} <b>${wzrq_esc(r.custom_adonan_ke || '-')}</b> — ${wzrq_esc(r.item_name)}</div>
-					<div class="text-muted">${wzrq_esc(r.name)} • ${Number(r.produced_qty || 0).toLocaleString('id-ID')} ${wzrq_esc(r.stock_uom)}</div>
+					<div>${__('Batch')} <b>${wzrq_esc(r.custom_adonan_ke || '-')}</b> — ${wzrq_esc(r.item_name)}</div>
+					<div class="text-muted">${wzrq_esc(r.name)} • ${Number(r.produced_qty || 0).toLocaleString('en-US')} ${wzrq_esc(r.stock_uom)}</div>
 				</td>
 				<td><input type="number" class="form-control wzrq-kg1" min="0" step="0.01" placeholder="kg" /></td>
 				<td><input type="number" class="form-control wzrq-qty1" min="0" step="1" value="${Number(r.produced_qty || 0)}" /></td>
@@ -453,26 +454,30 @@ function bulk_dialog(wos, done) {
 		.join('');
 
 	const d = new frappe.ui.Dialog({
-		title: __('Alokasi Box — {0} Work Order', [wos.length]),
+		title: __('Box Allocation — {0} Work Orders', [wos.length]),
 		size: 'large',
 	});
 	d.$body.html(`
-		<p class="text-muted">${__('Isi berat (kg) tiap box; jumlah sudah diisi hasil WO. Server memvalidasi kecocokan per Work Order.')}</p>
+		<p class="text-muted">${__('Enter the weight (kg) for each box. Quantities are prefilled from the Work Order yield; the server validates each Work Order.')}</p>
 		<table class="wzrq-dtable">
 			<thead>
 				<tr>
-					<th>${__('Work Order')}</th>
-					<th>${__('Box 1 — kg')}</th>
-					<th>${__('Box 1 — isi')}</th>
-					<th>${__('Box 2 — kg')}</th>
-					<th>${__('Box 2 — isi')}</th>
+					<th rowspan="2">${__('Work Order')}</th>
+					<th colspan="2" class="wzrq-dt-group">${__('Box 1')}</th>
+					<th colspan="2" class="wzrq-dt-group">${__('Box 2')}</th>
+				</tr>
+				<tr>
+					<th class="wzrq-dt-sub">kg</th>
+					<th class="wzrq-dt-sub">${__('qty')}</th>
+					<th class="wzrq-dt-sub">kg</th>
+					<th class="wzrq-dt-sub">${__('qty')}</th>
 				</tr>
 			</thead>
 			<tbody>${rows_html}</tbody>
 		</table>
 	`);
 
-	d.set_primary_action(__('Buat Request'), () => submit_bulk(d, done));
+	d.set_primary_action(__('Create Request'), () => submit_bulk(d, done));
 	d.show();
 }
 
@@ -502,14 +507,14 @@ async function submit_bulk(d, done) {
 	});
 	if (invalid) {
 		frappe.msgprint({
-			title: __('Data belum lengkap'),
+			title: __('Incomplete data'),
 			indicator: 'red',
-			message: __('Isi Box 1 (kg dan jumlah) untuk semua baris — periksa {0}.', [invalid]),
+			message: __('Fill in Box 1 (kg and qty) for every row — check {0}.', [invalid]),
 		});
 		return;
 	}
 
-	frappe.freeze(__('Membuat request serah terima...'));
+	frappe.freeze(__('Creating handover requests...'));
 	const ok_list = [];
 	const fail_list = [];
 	for (const p of payloads) {
@@ -528,13 +533,13 @@ async function submit_bulk(d, done) {
 
 	if (fail_list.length) {
 		frappe.msgprint({
-			title: ok_list.length ? __('Sebagian berhasil') : __('Semua gagal'),
+			title: ok_list.length ? __('Partially created') : __('All failed'),
 			indicator: ok_list.length ? 'orange' : 'red',
 			message:
 				(ok_list.length
-					? `<p>${__('Berhasil: {0}', [wzrq_esc(ok_list.join(', '))])}</p>`
+					? `<p>${__('Created: {0}', [wzrq_esc(ok_list.join(', '))])}</p>`
 					: '') +
-				`<p><b>${__('Gagal')}:</b></p><ul>` +
+				`<p><b>${__('Failed')}:</b></p><ul>` +
 				fail_list
 					.map((f) => `<li><b>${wzrq_esc(f.wo)}</b> — ${wzrq_esc(f.error)}</li>`)
 					.join('') +
@@ -542,7 +547,7 @@ async function submit_bulk(d, done) {
 		});
 	} else {
 		frappe.show_alert({
-			message: __('{0} request dibuat', [ok_list.length]),
+			message: __('{0} requests created', [ok_list.length]),
 			indicator: 'green',
 		});
 	}
@@ -586,14 +591,14 @@ function wzrq_err_text(e) {
 }
 
 function cancel_request(material_request, done) {
-	frappe.confirm(__('Batalkan request {0} yang belum terkirim?', [material_request]), () => {
+	frappe.confirm(__('Cancel handover request {0} that has not been shipped?', [material_request]), () => {
 		frappe.call({
 			method: 'production_app.api.handover.cancel_request',
 			args: { material_request: material_request },
 			freeze: true,
-			freeze_message: __('Membatalkan request...'),
+			freeze_message: __('Cancelling request...'),
 		}).then(() => {
-			frappe.show_alert({ message: __('Request dibatalkan'), indicator: 'orange' });
+			frappe.show_alert({ message: __('Request cancelled'), indicator: 'orange' });
 			done && done();
 		});
 	});
