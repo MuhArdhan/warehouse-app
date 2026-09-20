@@ -113,6 +113,68 @@
 .wzrq-filter-foot .wzrq-filter-clearall:hover {
 	color: var(--danger, #e31b1b);
 }
+/* range tanggal (between): dua input date berdampingan */
+.wzrq-fv-range {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}
+.wzrq-fv-range .form-control {
+	flex: 1;
+	min-width: 0;
+}
+.wzrq-fdash {
+	color: var(--text-muted);
+}
+
+/* popover pilih kolom (gear di pojok kanan header tabel) */
+.wzrq-table-wrap {
+	position: relative;
+}
+.wzrq-cols-pop {
+	position: absolute;
+	top: 42px;
+	right: 8px;
+	min-width: 210px;
+	background: var(--popover-bg, var(--card-bg));
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg, var(--border-radius));
+	box-shadow: var(--shadow-md);
+	padding: 10px 14px 12px;
+	z-index: 1030; /* di bawah modal (1050) */
+}
+.wzrq-cols-title {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin-bottom: 6px;
+}
+.wzrq-cols-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	padding: 5px 0;
+	cursor: pointer;
+}
+.wzrq-cols-item input {
+	accent-color: var(--primary);
+	width: 14px;
+	height: 14px;
+}
+.wzrq-cols-btn {
+	border: none;
+	background: transparent;
+	padding: 2px 6px;
+	color: var(--text-muted);
+	cursor: pointer;
+	border-radius: var(--border-radius);
+	line-height: 1;
+}
+.wzrq-cols-btn:hover {
+	color: var(--text-color);
+	background: var(--control-bg);
+}
 
 .wzrq-table-wrap {
 	overflow: auto;
@@ -182,6 +244,10 @@
 }
 .wzrq-col-status {
 	width: 170px;
+	white-space: nowrap;
+}
+.wzrq-col-warehouse {
+	color: var(--text-muted);
 	white-space: nowrap;
 }
 .wzrq-col-aksi {

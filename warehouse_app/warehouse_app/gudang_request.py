@@ -19,7 +19,7 @@
 import json
 
 import frappe
-from frappe.utils import flt
+from frappe.utils import flt, get_datetime
 
 STATUS_TERBLOKIR = ("Stopped", "Closed", "Cancelled")
 
@@ -28,6 +28,11 @@ FILTER_FIELDS = {
 		"label": "Batch",
 		"fieldtype": "Data",
 		"operators": ["=", "!="],
+	},
+	"creation": {
+		"label": "Date",
+		"fieldtype": "Date",
+		"operators": ["between", ">=", "<="],
 	},
 	"production_item": {
 		"label": "Item",
@@ -46,7 +51,7 @@ FILTER_FIELDS = {
 		"operators": ["like", "="],
 	},
 	"produced_qty": {
-		"label": "Yield",
+		"label": "Qty",
 		"fieldtype": "Float",
 		"operators": [">=", "<=", "="],
 	},
@@ -185,12 +190,51 @@ def _parse_filters(filters):
 			continue
 		if cfg["fieldtype"] in ("Float", "Int"):
 			value = flt(value)
+		if cfg["fieldtype"] == "Date":
+			out.extend(_date_filter(field, operator, value))
+			continue
 		if operator == "like":
 			# get_list "like" tidak menambah wildcard — list view ERPNext
 			# juga membungkus %value% di sisi nilai.
 			value = f"%{str(value).strip()}%"
 		out.append([field, operator, value])
 	return out
+
+
+def _date_filter(field, operator, value):
+	"""Filter tanggal per-hari: `creation` bertipe datetime, jadi batas
+	hari diperluas ke 00:00:00–23:59:59 agar perbandingan tanggal akurat.
+	Ukuran `between`: [d1, d2] (satu sisi boleh kosong -> jadi >= / <=).
+	"""
+	if isinstance(value, (list, tuple)):
+		d1 = str(value[0] or "").strip() if len(value) > 0 else ""
+		d2 = str(value[1] or "").strip() if len(value) > 1 else ""
+	else:
+		d1, d2 = str(value or "").strip(), ""
+
+	if operator == "between":
+		if d1 and d2:
+			return [
+				[field, ">=", get_datetime(d1)],
+				[field, "<=", get_datetime(d2).replace(hour=23, minute=59, second=59)],
+			]
+		if d1:
+			operator, value = ">=", d1
+		elif d2:
+			operator, value = "<=", d2
+		else:
+			return []
+	elif operator in (">=", "<="):
+		d1 = d1 or d2
+
+	if not d1:
+		return []
+	bound = get_datetime(d1)
+	if operator == "<=":
+		bound = bound.replace(hour=23, minute=59, second=59)
+	else:
+		bound = bound.replace(hour=0, minute=0, second=0)
+	return [[field, operator, bound]]
 
 
 def _item_filter(operator, value):

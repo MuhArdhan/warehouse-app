@@ -12,8 +12,9 @@
 // server (filter_fields), field Item virtual dicocokkan via nama/kode item.
 
 // state filter modul-level (satu instance page per sesi)
-let WZRQ_FILTERS = []; // [{field, operator, value}]
+let WZRQ_FILTERS = []; // [{field, operator, value(array utk between)}]
 let WZRQ_FIELD_META = null;
+let WZRQ_VISIBLE = null; // key kolom terlihat (persist di localStorage)
 
 frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
@@ -56,7 +57,7 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 						<th class="wzrq-col-check"><input type="checkbox" class="wzrq-check-all" aria-label="${__('Select all')}" /></th>
 						<th class="wzrq-col-adonan">${__('Batch')}</th>
 						<th>${__('Item')}</th>
-						<th class="wzrq-col-qty">${__('Yield')}</th>
+						<th class="wzrq-col-qty">${__('Qty')}</th>
 						<th class="wzrq-col-wo">${__('Work Order')}</th>
 						<th class="wzrq-col-status">${__('Status')}</th>
 						<th class="wzrq-col-aksi"></th>
@@ -64,6 +65,7 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 				</thead>
 				<tbody></tbody>
 			</table>
+			<div class="wzrq-cols-pop" style="display:none"></div>
 			<div class="wzrq-empty text-muted" style="display:none">
 				${__('No matching Work Orders. Try a different search or clear the filters.')}
 			</div>
@@ -199,6 +201,9 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		if (!$(e.target).closest('.wzrq-filter-pop, .wzrq-filter-btn').length) {
 			$pop.hide();
 		}
+		if (!$(e.target).closest('.wzrq-cols-pop, .wzrq-cols-btn').length) {
+			$colsPop.hide();
+		}
 	});
 
 	$main.on('click', '.wzrq-filter-add', () => {
@@ -227,11 +232,26 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		apply_soon();
 	});
 
-	$pop.on('change input', '.wzrq-fo, .wzrq-fv', function () {
+	$pop.on('change input', '.wzrq-fo, .wzrq-fv, .wzrq-fd1, .wzrq-fd2', function () {
 		const row = $(this).closest('.wzrq-filter-row');
 		const idx = row.attr('data-idx');
+		const prev_op = WZRQ_FILTERS[idx].operator;
 		WZRQ_FILTERS[idx].operator = row.find('.wzrq-fo').val();
-		WZRQ_FILTERS[idx].value = row.find('.wzrq-fv').val() || '';
+		const $d1 = row.find('.wzrq-fd1');
+		if ($d1.length) {
+			WZRQ_FILTERS[idx].value = [$d1.val() || '', row.find('.wzrq-fd2').val() || ''];
+		} else {
+			WZRQ_FILTERS[idx].value = row.find('.wzrq-fv').val() || '';
+		}
+		// ganti operator pada field Date mengubah bentuk input (between = 2
+		// input tanggal) — baris filter perlu dirender ulang
+		if (
+			WZRQ_FIELD_META[WZRQ_FILTERS[idx].field] &&
+			WZRQ_FIELD_META[WZRQ_FILTERS[idx].field].fieldtype === 'Date' &&
+			prev_op !== WZRQ_FILTERS[idx].operator
+		) {
+			wzrq_render_filter_rows($main);
+		}
 		wzrq_update_filter_count($main_page);
 		apply_soon();
 	});
@@ -241,6 +261,35 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		wzrq_render_filter_rows($main);
 		wzrq_update_filter_count($main_page);
 		load();
+	});
+
+	// --- pilih kolom tabel (ala list view ERPNext) ---
+	const $colsPop = $main.find('.wzrq-cols-pop');
+	function wzrq_build_cols_pop() {
+		const visible = wzrq_visible_columns();
+		$colsPop.html(
+			`<div class="wzrq-cols-title">${__('Choose columns')}</div>` +
+				WZRQ_ALL_COLUMNS.map(
+					(c) =>
+						`<label class="wzrq-cols-item"><input type="checkbox" class="wzrq-col-toggle" value="${c.key}"${visible.includes(c.key) ? ' checked' : ''} /> ${c.label}</label>`
+				).join(''),
+		);
+	}
+	$main.on('click', '.wzrq-cols-btn', function (e) {
+		e.stopPropagation();
+		wzrq_build_cols_pop();
+		$colsPop.toggle();
+	});
+	$colsPop.on('change', '.wzrq-col-toggle', () => {
+		const checked = $colsPop
+			.find('.wzrq-col-toggle:checked')
+			.map(function () {
+				return this.value;
+			})
+			.get();
+		wzrq_set_visible_columns(checked);
+		// render ulang tanpa fetch — data baris masih ada di scope
+		wzrq_render($main_page, wzrq_rows($main_page));
 	});
 
 	// --- panel tampilan (kepadatan) ---
@@ -290,7 +339,12 @@ frappe.pages['gudang_request'].on_page_show = function (wrapper) {
 // ---------------- filter ala list view ERPNext
 
 function active_filters() {
-	return WZRQ_FILTERS.filter((f) => String(f.value || '').trim() !== '');
+	return WZRQ_FILTERS.filter((f) => {
+		if (Array.isArray(f.value)) {
+			return f.value.some((x) => String(x || '').trim() !== '');
+		}
+		return String(f.value || '').trim() !== '';
+	});
 }
 
 function wzrq_ensure_meta(done) {
@@ -322,7 +376,12 @@ function wzrq_render_filter_rows($main) {
 				.map((op) => `<option value="${wzrq_esc(op)}"${op === f.operator ? ' selected' : ''}>${wzrq_esc(wzrq_op_label(op))}</option>`)
 				.join('');
 			let value_ctl;
-			if (meta.fieldtype === 'Select' && meta.options) {
+			if (meta.fieldtype === 'Date' && f.operator === 'between') {
+				const parts = Array.isArray(f.value) ? f.value : String(f.value || '').split(',');
+				value_ctl = `<div class="wzrq-fv wzrq-fv-range"><input type="date" class="form-control wzrq-fd1" value="${wzrq_esc(parts[0] || '')}" /><span class="wzrq-fdash">–</span><input type="date" class="form-control wzrq-fd2" value="${wzrq_esc(parts[1] || '')}" /></div>`;
+			} else if (meta.fieldtype === 'Date') {
+				value_ctl = `<input type="date" class="form-control wzrq-fv" value="${wzrq_esc(f.value)}" />`;
+			} else if (meta.fieldtype === 'Select' && meta.options) {
 				value_ctl =
 					`<select class="form-control wzrq-fv"><option value="">—</option>` +
 					meta.options
@@ -351,6 +410,7 @@ function wzrq_op_label(op) {
 		'!=': '≠',
 		like: 'like',
 		'not like': 'not like',
+		between: 'between',
 		'>=': '≥',
 		'<=': '≤',
 		'>': '>',
@@ -362,6 +422,16 @@ function wzrq_op_label(op) {
 function wzrq_collect_rows($main) {
 	const rows = [];
 	$main.find('.wzrq-filter-row').each(function () {
+		const $d1 = $(this).find('.wzrq-fd1');
+		if ($d1.length) {
+			// operator between: dua input tanggal dikumpulkan sebagai array
+			rows.push({
+				field: $(this).find('.wzrq-ff').val(),
+				operator: $(this).find('.wzrq-fo').val(),
+				value: [$d1.val() || '', $(this).find('.wzrq-fd2').val() || ''],
+			});
+			return;
+		}
 		rows.push({
 			field: $(this).find('.wzrq-ff').val(),
 			operator: $(this).find('.wzrq-fo').val(),
@@ -383,10 +453,73 @@ function wzrq_rows($scope) {
 	return $scope.data('wzrq_rows') || [];
 }
 
+// definisi kolom tabel ala list view ERPNext — urutan tetap, show/hide
+// via popover "Choose columns" (persist di localStorage)
+const WZRQ_ALL_COLUMNS = [
+	{
+		key: 'batch',
+		label: __('Batch'),
+		cls: 'wzrq-col-adonan',
+		cell: (r) => `<span class="wzrq-adonan">${r.custom_adonan_ke ? wzrq_esc(r.custom_adonan_ke) : '—'}</span>`,
+	},
+	{ key: 'item', label: __('Item'), cls: 'wzrq-col-item', cell: (r) => wzrq_esc(r.item_name) },
+	{
+		key: 'qty',
+		label: __('Qty'),
+		cls: 'wzrq-col-qty',
+		cell: (r) => `${Number(r.produced_qty || 0).toLocaleString('en-US')} <span class="text-muted">${wzrq_esc(r.stock_uom)}</span>`,
+	},
+	{ key: 'wo', label: __('Work Order'), cls: 'wzrq-col-wo', cell: (r) => wzrq_esc(r.name) },
+	{ key: 'warehouse', label: __('Warehouse'), cls: 'wzrq-col-warehouse', cell: (r) => wzrq_esc(r.fg_warehouse || '') },
+	{
+		key: 'status',
+		label: __('Status'),
+		cls: 'wzrq-col-status',
+		cell: (r) =>
+			r.request_active
+				? `<span class="indicator-pill orange">${__('Requested')} · <a href="/app/material-request/${wzrq_esc(r.custom_handover_material_request)}">${wzrq_esc(r.custom_handover_material_request)}</a></span>`
+				: `<span class="indicator-pill blue">${wzrq_esc(r.status)}</span>`,
+	},
+];
+
+function wzrq_visible_columns() {
+	if (WZRQ_VISIBLE) {
+		return WZRQ_VISIBLE;
+	}
+	let keys = null;
+	try {
+		keys = JSON.parse(localStorage.getItem('wzrq_columns') || 'null');
+	} catch (e) {
+		keys = null;
+	}
+	if (!Array.isArray(keys) || !keys.length) {
+		keys = WZRQ_ALL_COLUMNS.map((c) => c.key);
+	}
+	WZRQ_VISIBLE = keys.filter((k) => WZRQ_ALL_COLUMNS.some((c) => c.key === k));
+	return WZRQ_VISIBLE;
+}
+
+function wzrq_set_visible_columns(keys) {
+	WZRQ_VISIBLE = keys;
+	try {
+		localStorage.setItem('wzrq_columns', JSON.stringify(keys));
+	} catch (e) {
+		/* private mode: abaikan */
+	}
+}
+
 function wzrq_render($scope, rows) {
 	$scope.data('wzrq_rows', rows);
 	const $main = $scope.find('.layout-main');
-	$main.find('.wzrq-table tbody').html(rows.map(wzrq_row_html).join(''));
+	const cols = wzrq_visible_columns().map((key) => WZRQ_ALL_COLUMNS.find((c) => c.key === key));
+	$main.find('.wzrq-table thead tr').html(
+		`<th class="wzrq-col-check"><input type="checkbox" class="wzrq-check-all" aria-label="${__('Select all')}" /></th>` +
+			cols
+				.map((c) => `<th class="${c.cls}">${c.label}</th>`)
+				.join('') +
+			`<th class="wzrq-col-aksi"><button type="button" class="wzrq-cols-btn" title="${__('Choose columns')}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></button></th>`,
+	);
+	$main.find('.wzrq-table tbody').html(rows.map((r) => wzrq_row_html(r, cols)).join(''));
 	$main.find('.wzrq-empty').toggle(rows.length === 0);
 	$main.find('.wzrq-limit').toggle(rows.length >= 50);
 	wzrq_update_bulk($scope, new Set());
@@ -411,23 +544,16 @@ function wzrq_esc(value) {
 	return frappe.utils.escape_html(value == null ? '' : String(value));
 }
 
-function wzrq_row_html(r) {
+function wzrq_row_html(r, cols) {
 	const active = r.request_active;
 	const mr = r.custom_handover_material_request;
-	const status = active
-		? `<span class="indicator-pill orange">${__('Requested')} · <a href="/app/material-request/${wzrq_esc(mr)}">${wzrq_esc(mr)}</a></span>`
-		: `<span class="indicator-pill blue">${wzrq_esc(r.status)}</span>`;
 	const aksi = active
 		? `<button class="btn btn-xs btn-default wzrq-cancel" data-mr="${wzrq_esc(mr)}">${__('Cancel')}</button>`
 		: '';
 	return `
 		<tr class="wzrq-row${active ? ' is-active' : ''}" data-wo="${wzrq_esc(r.name)}">
 			<td class="wzrq-col-check"><input type="checkbox" class="wzrq-check"${active ? ' disabled' : ''} aria-label="${wzrq_esc(r.name)}" /></td>
-			<td class="wzrq-col-adonan"><span class="wzrq-adonan">${r.custom_adonan_ke ? wzrq_esc(r.custom_adonan_ke) : '—'}</span></td>
-			<td class="wzrq-col-item">${wzrq_esc(r.item_name)}</td>
-			<td class="wzrq-col-qty">${Number(r.produced_qty || 0).toLocaleString('en-US')} <span class="text-muted">${wzrq_esc(r.stock_uom)}</span></td>
-			<td class="wzrq-col-wo">${wzrq_esc(r.name)}</td>
-			<td class="wzrq-col-status">${status}</td>
+			${cols.map((c) => `<td class="${c.cls}">${c.cell(r)}</td>`).join('')}
 			<td class="wzrq-col-aksi">${aksi}</td>
 		</tr>`;
 }
@@ -458,7 +584,7 @@ function bulk_dialog(wos, done) {
 		size: 'large',
 	});
 	d.$body.html(`
-		<p class="text-muted">${__('Enter the weight (kg) for each box. Quantities are prefilled from the Work Order yield; the server validates each Work Order.')}</p>
+		<p class="text-muted">${__('Enter the weight (kg) for each box. Quantities are prefilled from the Work Order; the server validates each Work Order.')}</p>
 		<table class="wzrq-dtable">
 			<thead>
 				<tr>
