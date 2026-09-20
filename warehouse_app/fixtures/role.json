@@ -1,0 +1,9 @@
+[
+ {
+  "doctype": "Role",
+  "name": "Gudang Barang Jadi",
+  "role_name": "Gudang Barang Jadi",
+  "disabled": 0,
+  "desk_access": 1
+ }
+]

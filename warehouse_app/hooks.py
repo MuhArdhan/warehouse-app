@@ -10,6 +10,17 @@ app_license = "mit"
 after_install = "warehouse_app.upgrade.apply"
 after_migrate = ["warehouse_app.upgrade.apply"]
 
+# Fixtures
+# ------------------
+# Role gudang dibawa app (site baru mis. Frappe Cloud tidak memilikinya;
+# workspace + Page kita role-scoped ke role ini).
+fixtures = [
+	{
+		"dt": "Role",
+		"filters": [["name", "in", ["Gudang Barang Jadi"]]],
+	},
+]
+
 
 # Apps
 # ------------------

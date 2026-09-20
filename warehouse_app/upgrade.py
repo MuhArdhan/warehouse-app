@@ -13,11 +13,25 @@ import frappe
 
 SIDEBAR = "Gudang"
 APP = "warehouse_app"
+ROLE = "Gudang Barang Jadi"
 
 
 def apply():
+    ensure_role()
     ensure_workspace_sidebar()
     ensure_desktop_icon()
+
+
+def ensure_role():
+    # Site baru (mis. Frappe Cloud) belum punya role ini, padahal workspace
+    # dan Page gudang di-scope ke role ini — jamin ada sejak install/migrate.
+    if frappe.db.exists("Role", ROLE):
+        return "unchanged"
+    doc = frappe.get_doc({"doctype": "Role", "role_name": ROLE, "desk_access": 1})
+    doc.flags.ignore_permissions = 1
+    doc.insert()
+    frappe.db.commit()
+    return "created"
 
 
 def ensure_workspace_sidebar():
