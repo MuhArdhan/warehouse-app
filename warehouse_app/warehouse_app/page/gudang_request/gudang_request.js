@@ -142,7 +142,7 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 			return;
 		}
 		const wo = $(this).attr('data-wo');
-		if (!wzrq_rows($main_page).some((r) => r.name === wo && !r.request_active)) {
+		if (!wzrq_rows($main_page).some((r) => r.name === wo && !r.request_active && !r.request_shipped)) {
 			return;
 		}
 		if (selected.has(wo)) {
@@ -159,7 +159,7 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 	});
 
 	$main.on('change', '.wzrq-check-all', function () {
-		const rows = wzrq_rows($main_page).filter((r) => !r.request_active);
+		const rows = wzrq_rows($main_page).filter((r) => !r.request_active && !r.request_shipped);
 		rows.forEach((r) => (this.checked ? selected.add(r.name) : selected.delete(r.name)));
 		$main.find('.wzrq-row').each(function () {
 			$(this).find('.wzrq-check').prop('checked', selected.has($(this).attr('data-wo')));
@@ -500,7 +500,9 @@ const WZRQ_ALL_COLUMNS = [
 		cell: (r) =>
 			r.request_active
 				? `<span class="indicator-pill orange">${__('Requested')} · <a href="/app/material-request/${wzrq_esc(r.custom_handover_material_request)}">${wzrq_esc(r.custom_handover_material_request)}</a></span>`
-				: `<span class="indicator-pill blue">${wzrq_esc(r.status)}</span>`,
+				: r.request_shipped
+					? `<span class="indicator-pill green">${__('Shipped')} · <a href="/app/material-request/${wzrq_esc(r.custom_handover_material_request)}">${wzrq_esc(r.custom_handover_material_request)}</a></span>`
+					: `<span class="indicator-pill blue">${wzrq_esc(r.status)}</span>`,
 	},
 ];
 
@@ -613,7 +615,7 @@ function wzrq_render($scope, rows) {
 
 function wzrq_update_bulk($scope, selected) {
 	const rows = wzrq_rows($scope);
-	const selectable = rows.filter((r) => !r.request_active);
+	const selectable = rows.filter((r) => !r.request_active && !r.request_shipped);
 	const n = selectable.filter((r) => selected.has(r.name)).length;
 	const $main = $scope.find('.layout-main');
 	$main.find('.wzrq-bulk-count').text(n ? __('{0} selected', [n]) : '');
@@ -632,13 +634,14 @@ function wzrq_esc(value) {
 
 function wzrq_row_html(r, cols) {
 	const active = r.request_active;
+	const done = active || r.request_shipped; // requested/shipped: non-selectable
 	const mr = r.custom_handover_material_request;
 	const aksi = active
 		? `<button class="btn btn-xs btn-default wzrq-cancel" data-mr="${wzrq_esc(mr)}">${__('Cancel')}</button>`
 		: '';
 	return `
-		<tr class="wzrq-row${active ? ' is-active' : ''}" data-wo="${wzrq_esc(r.name)}">
-			<td class="wzrq-col-check"><input type="checkbox" class="wzrq-check"${active ? ' disabled' : ''} aria-label="${wzrq_esc(r.name)}" /></td>
+		<tr class="wzrq-row${done ? ' is-active' : ''}" data-wo="${wzrq_esc(r.name)}">
+			<td class="wzrq-col-check"><input type="checkbox" class="wzrq-check"${done ? ' disabled' : ''} aria-label="${wzrq_esc(r.name)}" /></td>
 			${cols.map((c) => `<td class="${c.cls}">${c.cell(r)}</td>`).join('')}
 			<td class="wzrq-col-aksi">${aksi}</td>
 		</tr>`;

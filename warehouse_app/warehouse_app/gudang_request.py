@@ -149,6 +149,10 @@ def requestable_work_orders(search=None, filters=None):
 		r.request_active = bool(
 			mr and docstatus == 1 and status != "Stopped" and mr not in mr_dikirim
 		)
+		# MR sudah terpenuhi SE submitted — tanpa ini baris tampil seperti WO
+		# yang belum pernah diminta (operator kebingungan); UI kasih pill
+		# "Shipped" + baris non-selectable.
+		r.request_shipped = bool(mr and docstatus == 1 and mr in mr_dikirim)
 
 	# Satuan qty request mengikuti display UOM produksi (mis. Pcs -> Pack);
 	# logika konversi TIDAK diduplikasi — pakai _enrich_units production_app,
