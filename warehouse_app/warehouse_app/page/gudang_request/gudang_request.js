@@ -71,8 +71,9 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 			<div class="wzrq-empty text-muted" style="display:none">
 				${__('No matching Work Orders. Try a different search or clear the filters.')}
 			</div>
-			<div class="wzrq-limit text-muted" style="display:none">
-				${__('Showing the 50 most recent Work Orders — narrow with search or filters.')}
+			<div class="wzrq-foot" style="display:none">
+				<span class="wzrq-count text-muted"></span>
+				<button class="btn btn-default btn-sm wzrq-more-btn" style="display:none">${__('Load more')}</button>
 			</div>
 		</div>
 		<button class="btn btn-default wzrq-tweak-btn" title="${__('Display settings')}">
@@ -97,18 +98,32 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		return $search.val() || '';
 	}
 
-	function load() {
+	// opts.append: tombol Load more — ambil halaman berikutnya (offset =
+	// baris termuat) lalu tempelkan; tanpa append hasil menggantikan baris.
+	function load(opts) {
+		const append = !!(opts && opts.append);
+		const offset = append ? wzrq_rows($main_page).length : 0;
+		if (append) {
+			$main.find('.wzrq-more-btn').prop('disabled', true);
+		}
 		frappe.call({
 			method: 'warehouse_app.warehouse_app.gudang_request.requestable_work_orders',
 			args: {
 				search: current_search(),
 				filters: JSON.stringify(active_filters()),
+				limit_start: offset,
 			},
-			freeze: true,
+			freeze: !append,
 			freeze_message: __('Loading Work Orders...'),
-		}).then((r) => {
-			wzrq_render($main_page, (r.message && r.message.length && r.message) || []);
-		});
+		}).then(
+			(r) => {
+				const fetched = (r.message && r.message.length && r.message) || [];
+				$main_page.data('wzrq_last_fetch', fetched.length);
+				wzrq_render($main_page, append ? wzrq_rows($main_page).concat(fetched) : fetched);
+				$main.find('.wzrq-more-btn').prop('disabled', false);
+			},
+			() => $main.find('.wzrq-more-btn').prop('disabled', false)
+		);
 	}
 
 	function apply_soon() {
@@ -198,6 +213,16 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 		}
 	});
 	$main.find('.wzrq-refresh').on('click', load);
+	$main.on('click', '.wzrq-more-btn', () => load({ append: true }));
+
+	// Esc menutup popover filter/pemilih kolom/panel tampilan (selain klik-luar)
+	$(document).on('keydown.wzrq', (e) => {
+		if (e.key === 'Escape') {
+			$pop.hide();
+			$colsPop.hide();
+			$panel.hide();
+		}
+	});
 
 	const $pop = $main.find('.wzrq-filter-pop');
 	$main.find('.wzrq-filter-btn').on('click', function (e) {
@@ -333,21 +358,31 @@ frappe.pages['gudang_request'].on_page_load = function (wrapper) {
 };
 
 // P2 review W9: muat ulang tiap kali halaman tampil lagi, supaya badge
-// "Diminta" tidak basi setelah navigasi pergi-pulang.
+// "Diminta" tidak basi setelah navigasi pergi-pulang. Tanpa freeze — cukup
+// redupkan tabel supaya tidak ada flash konten basi yang terlihat final.
 frappe.pages['gudang_request'].on_page_show = function (wrapper) {
 	const $scope = $(wrapper);
 	if (!$scope.find('.wzrq-search').length) {
 		return;
 	}
+	wzrq_set_loading($scope, true);
 	frappe.call({
 		method: 'warehouse_app.warehouse_app.gudang_request.requestable_work_orders',
 		args: {
 			search: $scope.find('.wzrq-search').val() || '',
 			filters: JSON.stringify(active_filters()),
 		},
-	}).then((r) => {
-		wzrq_render($scope, (r.message && r.message.length && r.message) || []);
-	});
+		// dua-argumen, bukan .finally(): promise frappe.call (jQuery) tidak
+		// menjamin .finally — kelas loading bisa nyangkut selamanya
+	}).then(
+		(r) => {
+			const rows = (r.message && r.message.length && r.message) || [];
+			$scope.data('wzrq_last_fetch', rows.length);
+			wzrq_render($scope, rows);
+			wzrq_set_loading($scope, false);
+		},
+		() => wzrq_set_loading($scope, false)
+	);
 };
 
 // ---------------- filter ala list view ERPNext
@@ -532,6 +567,18 @@ function wzrq_set_visible_columns(keys) {
 	}
 }
 
+// layar sempit dan user belum pernah mengatur kolom sendiri
+function wzrq_secondary_collapsed() {
+	try {
+		if (localStorage.getItem('wzrq_columns')) {
+			return false;
+		}
+	} catch (e) {
+		/* private mode: anggap tanpa preferensi */
+	}
+	return window.innerWidth <= 640;
+}
+
 function wzrq_store(key, value) {
 	try {
 		localStorage.setItem(key, value);
@@ -595,11 +642,22 @@ function wzrq_sync_uom_select($main, rows) {
 	return WZRQ_QTY_UOM;
 }
 
+function wzrq_set_loading($scope, on) {
+	$scope.find('.wzrq-table-wrap').toggleClass('wzrq-loading', !!on);
+}
+
 function wzrq_render($scope, rows) {
 	$scope.data('wzrq_rows', rows);
 	const $main = $scope.find('.layout-main');
 	const uom = wzrq_sync_uom_select($main, rows);
-	const cols = wzrq_visible_columns().map((key) => WZRQ_ALL_COLUMNS.find((c) => c.key === key));
+	let col_keys = wzrq_visible_columns();
+	// layar sempit dan user belum pernah mengatur kolom: kolom sekunder
+	// disingkirkan agar tabel tidak mepet — pilihan eksplisit pemilih kolom
+	// tetap menang (tersimpan di localStorage, path ini tidak lagi aktif).
+	if (wzrq_secondary_collapsed()) {
+		col_keys = col_keys.filter((k) => k !== 'item_code' && k !== 'created');
+	}
+	const cols = col_keys.map((key) => WZRQ_ALL_COLUMNS.find((c) => c.key === key));
 	$main.find('.wzrq-table thead tr').html(
 		`<th class="wzrq-col-check"><input type="checkbox" class="wzrq-check-all" aria-label="${__('Select all')}" /></th>` +
 			cols
@@ -609,7 +667,13 @@ function wzrq_render($scope, rows) {
 	);
 	$main.find('.wzrq-table tbody').html(rows.map((r) => wzrq_row_html(r, cols)).join(''));
 	$main.find('.wzrq-empty').toggle(rows.length === 0);
-	$main.find('.wzrq-limit').toggle(rows.length >= 50);
+	const $foot = $main.find('.wzrq-foot');
+	$foot.toggle(rows.length > 0);
+	$main.find('.wzrq-count').text(
+		rows.length === 1 ? __('1 Work Order') : __('{0} Work Orders', [rows.length])
+	);
+	// Load more hanya saat fetch terakhir memenuhi satu halaman penuh (50)
+	$main.find('.wzrq-more-btn').toggle(rows.length > 0 && $scope.data('wzrq_last_fetch') >= 50);
 	wzrq_update_bulk($scope, new Set());
 }
 

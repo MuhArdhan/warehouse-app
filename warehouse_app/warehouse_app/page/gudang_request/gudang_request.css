@@ -280,17 +280,26 @@
 	color: var(--text-color);
 }
 
-.wzrq-empty,
-.wzrq-limit {
-	padding: 24px 12px;
-	font-size: 13px;
-}
 .wzrq-empty {
 	padding: 32px 12px;
 	text-align: center;
+	font-size: 13px;
 }
-.wzrq-limit {
-	padding-top: 12px;
+
+/* footer hasil: hitungan baris + tombol Load more */
+.wzrq-foot {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 12px 2px;
+	font-size: 13px;
+}
+
+/* reload senyap on_page_show: redupkan tabel agar tidak terlihat final */
+.wzrq-table-wrap.wzrq-loading {
+	opacity: 0.55;
+	pointer-events: none;
 }
 
 /* kepadatan (tweak panel) */
@@ -414,4 +423,61 @@
 	font-size: 12px;
 	height: 28px;
 	box-shadow: none;
+}
+
+/* --- layar kecil: papan juga dibuka dari HP/tablet di area gudang --- */
+@media (max-width: 900px) {
+	.wzrq-root {
+		padding: 12px 16px 56px;
+	}
+	.wzrq-toolbar {
+		flex-wrap: wrap;
+		row-gap: 8px;
+	}
+	.wzrq-toolbar .wzrq-search {
+		max-width: none;
+		flex: 1 1 220px;
+	}
+	.wzrq-bulk {
+		margin-left: 0;
+		flex-wrap: wrap;
+	}
+}
+@media (max-width: 640px) {
+	/* baris filter dibungkus agar tidak overflow di layar sempit */
+	.wzrq-filter-row {
+		flex-wrap: wrap;
+	}
+	.wzrq-filter-row .wzrq-ff,
+	.wzrq-filter-row .wzrq-fo {
+		flex: 1 1 40%;
+		width: auto;
+	}
+	.wzrq-filter-row .wzrq-fv {
+		flex: 1 1 100%;
+	}
+	/* hint dialog alokasi box: biarkan turun baris */
+	.wzrq-dt-hint {
+		flex-wrap: wrap;
+	}
+	/* tabel dialog: scroll horizontal terkendali di dalam modal */
+	.wzrq-dtable {
+		display: block;
+		overflow-x: auto;
+	}
+}
+/* perangkat sentuh: target tap lebih besar */
+@media (pointer: coarse) {
+	.wzrq-table input[type='checkbox'] {
+		width: 18px;
+		height: 18px;
+	}
+	.wzrq-table tbody td {
+		padding-top: 14px;
+		padding-bottom: 14px;
+	}
+	.wzrq-toolbar .btn,
+	.wzrq-uom {
+		min-height: 36px;
+	}
 }

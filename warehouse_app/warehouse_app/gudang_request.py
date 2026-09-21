@@ -19,7 +19,7 @@
 import json
 
 import frappe
-from frappe.utils import flt, get_datetime
+from frappe.utils import cint, flt, get_datetime
 
 STATUS_TERBLOKIR = ("Stopped", "Closed", "Cancelled")
 
@@ -81,7 +81,7 @@ def filter_fields():
 
 
 @frappe.whitelist()
-def requestable_work_orders(search=None, filters=None):
+def requestable_work_orders(search=None, filters=None, limit_start=0):
 	"""Daftar WO siap-diminta untuk user gudang: adonan + item + produced qty.
 
 	- WO submitted, bukan Stopped/Closed/Cancelled, produced qty > 0.
@@ -91,7 +91,9 @@ def requestable_work_orders(search=None, filters=None):
 	  create_request (throw duplikat di bawah row lock).
 	- `filters`: JSON list [{field, operator, value}] — field wajib ada di
 	  whitelist FILTER_FIELDS; nilai kosong dilewati.
+	- `limit_start`: offset tombol Load more client (halaman tetap 50).
 	"""
+	limit_start = max(cint(limit_start), 0)
 	filters_base = [
 		["docstatus", "=", 1],
 		["status", "not in", list(STATUS_TERBLOKIR)],
@@ -130,6 +132,7 @@ def requestable_work_orders(search=None, filters=None):
 		],
 		order_by="creation desc",
 		limit_page_length=50,
+		limit_start=limit_start,
 	)
 
 	item_names = dict(
