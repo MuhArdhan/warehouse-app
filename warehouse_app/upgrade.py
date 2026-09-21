@@ -14,6 +14,46 @@ import frappe
 SIDEBAR = "Gudang"
 APP = "warehouse_app"
 ROLE = "Gudang Barang Jadi"
+SIDEBAR_ICON = "package"
+
+# Nav grup "Gudang" di sidebar Desk. Icon = nama set lucide frappe v16
+# (icon-<name> di public/icons/lucide/icons.svg); "package" dipakai bersama
+# Desktop Icon & workspace agar satu identitas. Selaras JSON sync:
+# warehouse_app/warehouse_app/workspace_sidebar/gudang/gudang.json
+SIDEBAR_ITEMS = [
+    {
+        "label": "Gudang",
+        "link_to": "Gudang",
+        "link_type": "Workspace",
+        "type": "Link",
+        "icon": "package",
+        "idx": 1,
+    },
+    {
+        "label": "Handover Requests",
+        "link_to": "gudang_request",
+        "link_type": "Page",
+        "type": "Link",
+        "icon": "clipboard-list",
+        "idx": 2,
+    },
+    {
+        "label": "Serah Terima Gudang",
+        "link_to": "Serah Terima Gudang",
+        "link_type": "Report",
+        "type": "Link",
+        "icon": "truck",
+        "idx": 3,
+    },
+    {
+        "label": "Settings",
+        "link_to": "gudang_settings",
+        "link_type": "Page",
+        "type": "Link",
+        "icon": "settings",
+        "idx": 4,
+    },
+]
 
 
 def apply():
@@ -35,38 +75,64 @@ def ensure_role():
 
 
 def ensure_workspace_sidebar():
-    if frappe.db.exists("Workspace Sidebar", SIDEBAR):
-        row = frappe.db.get_value("Workspace Sidebar", SIDEBAR, ["app", "standard"], as_dict=1)
-        if row and (row.app != APP or not row.standard):
-            frappe.log_error(
-                title="warehouse_app.upgrade",
-                message=f"Workspace Sidebar {SIDEBAR!r} sudah ada tapi app={row.app!r} "
-                f"standard={row.standard!r} — tidak diubah (satu pemilik data).",
-            )
-        return "unchanged"
-    doc = frappe.get_doc(
-        {
-            "doctype": "Workspace Sidebar",
-            "title": SIDEBAR,
-            "header_icon": "package",
-            "app": APP,
-            "standard": 1,
-            "items": [
-                {
-                    "doctype": "Workspace Sidebar Item",
-                    "label": SIDEBAR,
-                    "link_to": SIDEBAR,
-                    "link_type": "Workspace",
-                    "type": "Link",
-                    "idx": 1,
-                }
-            ],
-        }
+    if not frappe.db.exists("Workspace Sidebar", SIDEBAR):
+        doc = frappe.get_doc(
+            {
+                "doctype": "Workspace Sidebar",
+                "title": SIDEBAR,
+                "header_icon": SIDEBAR_ICON,
+                "app": APP,
+                "standard": 1,
+                "items": [dict(item, doctype="Workspace Sidebar Item") for item in SIDEBAR_ITEMS],
+            }
+        )
+        doc.flags.ignore_permissions = 1
+        doc.insert()
+        frappe.db.commit()
+        return "created"
+
+    row = frappe.db.get_value(
+        "Workspace Sidebar", SIDEBAR, ["app", "standard", "header_icon"], as_dict=1
     )
+    if row and (row.app != APP or not row.standard):
+        frappe.log_error(
+            title="warehouse_app.upgrade",
+            message=f"Workspace Sidebar {SIDEBAR!r} sudah ada tapi app={row.app!r} "
+            f"standard={row.standard!r} — tidak diubah (satu pemilik data).",
+        )
+        return "unchanged"
+
+    # bench migrate tidak men-sync JSON workspace_sidebar, jadi record DB yang
+    # sudah ada disinkronkan di sini (tambah item/ubah icon hasil W16 dst).
+    doc = frappe.get_doc("Workspace Sidebar", SIDEBAR)
+    changed = []
+    if row.header_icon != SIDEBAR_ICON:
+        doc.header_icon = SIDEBAR_ICON
+        changed.append("header_icon")
+    if not _sidebar_items_match(doc.items):
+        doc.set("items", [dict(item, doctype="Workspace Sidebar Item") for item in SIDEBAR_ITEMS])
+        changed.append("items")
+    if not changed:
+        return "unchanged"
     doc.flags.ignore_permissions = 1
-    doc.insert()
+    doc.save()
     frappe.db.commit()
-    return "created"
+    return "synced"
+
+
+def _sidebar_items_match(rows):
+    current = [
+        {
+            "label": r.label,
+            "link_to": r.link_to,
+            "link_type": r.link_type,
+            "type": r.type,
+            "icon": r.icon or None,
+            "idx": r.idx,
+        }
+        for r in sorted(rows, key=lambda r: r.idx or 0)
+    ]
+    return current == SIDEBAR_ITEMS
 
 
 def ensure_desktop_icon():

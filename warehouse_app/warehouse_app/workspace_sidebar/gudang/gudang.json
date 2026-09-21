@@ -4,6 +4,7 @@
  "title": "Gudang",
  "app": "warehouse_app",
  "standard": 1,
+ "header_icon": "package",
  "items": [
   {
    "doctype": "Workspace Sidebar Item",
@@ -11,7 +12,35 @@
    "link_to": "Gudang",
    "link_type": "Workspace",
    "type": "Link",
+   "icon": "package",
    "idx": 1
+  },
+  {
+   "doctype": "Workspace Sidebar Item",
+   "label": "Handover Requests",
+   "link_to": "gudang_request",
+   "link_type": "Page",
+   "type": "Link",
+   "icon": "clipboard-list",
+   "idx": 2
+  },
+  {
+   "doctype": "Workspace Sidebar Item",
+   "label": "Serah Terima Gudang",
+   "link_to": "Serah Terima Gudang",
+   "link_type": "Report",
+   "type": "Link",
+   "icon": "truck",
+   "idx": 3
+  },
+  {
+   "doctype": "Workspace Sidebar Item",
+   "label": "Settings",
+   "link_to": "gudang_settings",
+   "link_type": "Page",
+   "type": "Link",
+   "icon": "settings",
+   "idx": 4
   }
  ]
 }
