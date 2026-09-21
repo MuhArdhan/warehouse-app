@@ -19,6 +19,12 @@ build-backend = "flit_core.buildapi"
 [tool.bench.dev-dependencies]
 # package_name = "~=1.1.0"
 
+# Rentang versi framework yang didukung app — dipakai Frappe Cloud untuk
+# mencocokkan app dengan bench (dibangun & diuji di frappe/erpnext v16).
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0,<17.0.0"
+erpnext = ">=16.0.0,<17.0.0"
+
 # These apt dependencies will be installed from Ubuntu repositories when you host your app on Frappe Cloud
 [deploy.dependencies.apt]
 packages = []
