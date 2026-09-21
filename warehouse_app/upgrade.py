@@ -48,6 +48,7 @@ def ensure_workspace_sidebar():
         {
             "doctype": "Workspace Sidebar",
             "title": SIDEBAR,
+            "header_icon": "package",
             "app": APP,
             "standard": 1,
             "items": [

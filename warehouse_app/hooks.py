@@ -28,15 +28,14 @@ fixtures = [
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "warehouse_app",
-# 		"logo": "/assets/warehouse_app/logo.png",
-# 		"title": "Warehouse App",
-# 		"route": "/warehouse_app",
-# 		"has_permission": "warehouse_app.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "warehouse_app",
+		"logo": "/assets/warehouse_app/logo.svg",
+		"title": "Warehouse App",
+		"route": "/app/gudang",
+	},
+]
 
 # Includes in <head>
 # ------------------
