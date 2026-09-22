@@ -61,12 +61,18 @@ add_to_apps_screen = [
 # Doctype Overrides
 # ------------------
 override_doctype_class = {
-	"Purchase Receipt": "warehouse_app.overrides.purchase_receipt.WarehousePurchaseReceipt"
+	"Purchase Receipt": "warehouse_app.overrides.purchase_receipt.WarehousePurchaseReceipt",
+	"Batch": "warehouse_app.overrides.batch.WarehouseBatch",
 }
 
 # include js in doctype views
 doctype_js = {
-	"Purchase Receipt": "public/js/purchase_receipt.js"
+	"Batch": "public/js/batch.js",
+	"Purchase Receipt": "public/js/purchase_receipt.js",
+	"Stock Entry": "public/js/stock_entry.js",
+	"Delivery Note": "public/js/delivery_note.js",
+	"Sales Invoice": "public/js/sales_invoice.js",
+	"Purchase Invoice": "public/js/purchase_invoice.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -168,13 +174,41 @@ doctype_js = {
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Stock Entry": {
+		"validate": "warehouse_app.overrides.batch_uom.apply_batch_uom_conversion",
+		"on_submit": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+		"on_cancel": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+	},
+	"Purchase Receipt": {
+		"validate": "warehouse_app.overrides.batch_uom.apply_batch_uom_conversion",
+		"on_submit": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+		"on_cancel": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+	},
+	"Delivery Note": {
+		"validate": "warehouse_app.overrides.batch_uom.apply_batch_uom_conversion",
+		"on_submit": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+		"on_cancel": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+	},
+	"Sales Invoice": {
+		"validate": "warehouse_app.overrides.batch_uom.apply_batch_uom_conversion",
+		"on_submit": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+		"on_cancel": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+	},
+	"Purchase Invoice": {
+		"validate": "warehouse_app.overrides.batch_uom.apply_batch_uom_conversion",
+		"on_submit": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+		"on_cancel": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+	},
+	"Subcontracting Receipt": {
+		"validate": "warehouse_app.overrides.batch_uom.apply_batch_uom_conversion",
+		"on_submit": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+		"on_cancel": "warehouse_app.overrides.batch_uom.sync_batch_qty_after_transaction",
+	},
+	"Material Request": {
+		"validate": "warehouse_app.overrides.batch_uom.apply_batch_uom_conversion",
+	},
+}
 
 # Scheduled Tasks
 # ---------------
@@ -212,11 +246,15 @@ doctype_js = {
 
 # Overriding Methods
 # ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "warehouse_app.event.get_events"
-# }
-#
+
+override_whitelisted_methods = {
+	"erpnext.controllers.queries.get_batch_no": "warehouse_app.overrides.batch_uom.warehouse_get_batch_no",
+	"erpnext.stock.doctype.batch.batch.get_batch_qty": "warehouse_app.overrides.batch_uom.warehouse_get_batch_qty",
+	"erpnext.stock.doctype.serial_and_batch_bundle.serial_and_batch_bundle.add_serial_batch_ledgers": "warehouse_app.overrides.batch_uom.warehouse_add_serial_batch_ledgers",
+	"erpnext.stock.doctype.serial_and_batch_bundle.serial_and_batch_bundle.get_serial_batch_ledgers": "warehouse_app.overrides.batch_uom.warehouse_get_serial_batch_ledgers",
+	"erpnext.stock.doctype.serial_and_batch_bundle.serial_and_batch_bundle.get_auto_data": "warehouse_app.overrides.batch_uom.warehouse_get_auto_data",
+}
+
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
@@ -279,6 +317,13 @@ doctype_js = {
 
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
+# }
+
+# Translation
+# ------------
+# List of apps whose translatable strings should be excluded from this app's translations.
+# ignore_translatable_strings_from = []
+
 # }
 
 # Translation
