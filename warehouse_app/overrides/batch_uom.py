@@ -2,6 +2,25 @@ import frappe
 from frappe.utils import flt
 import erpnext.stock.serial_batch_bundle as sbb
 
+@frappe.whitelist()
+def get_item_uom_conversion_factor(item_code, uom):
+	"""Return an Item UOM factor without exposing its child table directly."""
+	item_code = str(item_code or "").strip()
+	uom = str(uom or "").strip()
+	if not item_code or not uom:
+		return {"conversion_factor": None}
+
+	frappe.has_permission("Item", "read", item_code, throw=True)
+	item = frappe.get_cached_doc("Item", item_code)
+	if uom == item.stock_uom:
+		return {"conversion_factor": 1.0}
+
+	for detail in item.get("uoms") or []:
+		if detail.uom == uom:
+			return {"conversion_factor": flt(detail.conversion_factor)}
+	return {"conversion_factor": None}
+
+
 
 def get_batch_conversion_factor(batch_no, item_code=None):
 	if not batch_no and not item_code:
@@ -234,12 +253,12 @@ def warehouse_get_serial_batch_ledgers(
 
 @frappe.whitelist()
 def warehouse_get_auto_data(**kwargs):
+	from frappe.utils import cint
 	item_code = kwargs.get("item_code")
-	has_batch_no = kwargs.get("has_batch_no")
-	has_serial_no = kwargs.get("has_serial_no")
+	has_serial_no = cint(kwargs.get("has_serial_no"))
 
 	cf = 1.0
-	if has_batch_no and not has_serial_no and item_code:
+	if not has_serial_no and item_code:
 		cf = get_batch_conversion_factor(None, item_code)
 
 	orig_qty = flt(kwargs.get("qty")) if kwargs.get("qty") is not None else None

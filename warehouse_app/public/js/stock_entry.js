@@ -26,16 +26,8 @@ frappe.ui.form.on("Stock Entry Detail", {
 				return;
 			}
 			frappe.call({
-				method: "frappe.client.get_value",
-				args: {
-					doctype: "UOM Conversion Detail",
-					filters: {
-						parent: row.item_code,
-						parenttype: "Item",
-						uom: row.uom,
-					},
-					fieldname: "conversion_factor",
-				},
+				method: "warehouse_app.overrides.batch_uom.get_item_uom_conversion_factor",
+				args: { item_code: row.item_code, uom: row.uom },
 				callback: function (r) {
 					if (r.message && r.message.conversion_factor) {
 						let cf = flt(r.message.conversion_factor);

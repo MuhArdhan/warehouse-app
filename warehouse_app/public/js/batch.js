@@ -191,11 +191,11 @@ function update_warehouse_qty(frm) {
 			if (!r) return;
 			let warehouse_uom = frm.doc.stock_uom || r.custom_default_uom_warehouse;
 			if (warehouse_uom && r.stock_uom && warehouse_uom !== r.stock_uom) {
-				frappe.db.get_value(
-					"UOM Conversion Detail",
-					{ parent: frm.doc.item, uom: warehouse_uom },
-					"conversion_factor",
-					function (cf_res) {
+				frappe.call({
+					method: "warehouse_app.overrides.batch_uom.get_item_uom_conversion_factor",
+					args: { item_code: frm.doc.item, uom: warehouse_uom },
+					callback: function (r) {
+						let cf_res = r.message;
 						if (cf_res && cf_res.conversion_factor) {
 							let cf = flt(cf_res.conversion_factor);
 							if (frm.fields_dict.custom_uom_conversion_factor) {
@@ -206,8 +206,7 @@ function update_warehouse_qty(frm) {
 							}
 						}
 					},
-					"Item" // parent_doc: UOM Conversion Detail is a child table of Item
-				);
+				});
 			}
 		}
 	);
