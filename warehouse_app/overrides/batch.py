@@ -28,6 +28,7 @@ class WarehouseBatch(Batch):
 			self.set_batch_uom()
 			self.set_warehouse_qty()
 
+	@frappe.whitelist()
 	def recalculate_batch_qty(self):
 		super().recalculate_batch_qty()
 		if hasattr(self, "custom_qty_in_uom"):

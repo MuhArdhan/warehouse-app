@@ -63,6 +63,7 @@ add_to_apps_screen = [
 override_doctype_class = {
 	"Purchase Receipt": "warehouse_app.overrides.purchase_receipt.WarehousePurchaseReceipt",
 	"Batch": "warehouse_app.overrides.batch.WarehouseBatch",
+	"Pick List": "warehouse_app.overrides.pick_list.WarehousePickList",
 }
 
 # include js in doctype views
@@ -70,6 +71,7 @@ doctype_js = {
 	"Batch": "public/js/batch.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
 	"Stock Entry": "public/js/stock_entry.js",
+	"Pick List": "public/js/pick_list.js",
 	"Delivery Note": "public/js/delivery_note.js",
 	"Sales Invoice": "public/js/sales_invoice.js",
 	"Purchase Invoice": "public/js/purchase_invoice.js",
