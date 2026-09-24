@@ -200,7 +200,7 @@ def render_labels_html(items_json=None):
 	<title>Print Labels</title>
 	<style>
 		@page {
-			size: 50mm 30mm;
+			size: 100mm 30mm;
 			margin: 0;
 		}
 		* {
@@ -215,7 +215,17 @@ def render_labels_html(items_json=None):
 			background: #fff;
 			color: #000;
 		}
+		.label-row {
+			width: 100mm;
+			height: 30mm;
+			display: flex;
+			flex-direction: row;
+			page-break-after: always;
+			break-after: page;
+			overflow: hidden;
+		}
 		.label-page {
+			flex: 0 0 50mm;
 			width: 50mm;
 			height: 30mm;
 			padding: 2.2mm 2.5mm 1.5mm 2.5mm;
@@ -223,8 +233,6 @@ def render_labels_html(items_json=None):
 			flex-direction: row;
 			align-items: center;
 			justify-content: space-between;
-			page-break-after: always;
-			break-after: page;
 			overflow: hidden;
 		}
 		.label-left {
@@ -280,25 +288,80 @@ def render_labels_html(items_json=None):
 		@media screen {
 			body {
 				background: #eceff1;
-				padding: 20px;
+				padding: 76px 20px 20px;
 				display: flex;
 				flex-direction: column;
 				align-items: center;
 				gap: 15px;
 			}
-			.label-page {
+			.screen-toolbar {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 56px;
+				z-index: 1000;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 0 20px;
+				background: #fff;
+				border-bottom: 1px solid #d8dde3;
+				box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+			}
+			.total-labels {
+				font-size: 14px;
+				font-weight: 700;
+				color: #202124;
+			}
+			.print-button {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+				border: 0;
+				border-radius: 6px;
+				padding: 9px 16px;
+				background: #2490ef;
+				color: #fff;
+				font-size: 13px;
+				font-weight: 600;
+				cursor: pointer;
+			}
+			.print-button svg { width: 16px; height: 16px; }
+			.print-button:hover { background: #1678d3; }
+			.label-row {
 				background: #fff;
 				box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 				border-radius: 4px;
 			}
 		}
+		@media print {
+			.screen-toolbar { display: none !important; }
+		}
 	</style>
 </head>
 <body>
 """
+	total_labels = len(labels)
+	total_labels_text = frappe._("Total Labels: {0}").format(total_labels)
+	print_text = frappe._("Print")
+	html_content += f"""
+	<div class="screen-toolbar">
+		<div class="total-labels">{total_labels_text}</div>
+		<button class="print-button" type="button" onclick="window.print()">
+			<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7v-7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M17 11h.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+			</svg>
+			<span>{print_text}</span>
+		</button>
+	</div>
+"""
 
-	for lbl in labels:
-		html_content += f"""
+	for row_start in range(0, len(labels), 2):
+		html_content += '<div class="label-row">'
+		for lbl in labels[row_start : row_start + 2]:
+			html_content += f"""
 	<div class="label-page">
 		<div class="label-left">
 			<div class="qr-wrapper">
@@ -314,6 +377,7 @@ def render_labels_html(items_json=None):
 		</div>
 	</div>
 """
+		html_content += '</div>'
 
 	html_content += """
 	<script>
