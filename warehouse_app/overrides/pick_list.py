@@ -46,6 +46,17 @@ def apply_pick_list_uom_conversion(doc):
 		else:
 			row.stock_qty = flt(row.get("qty")) * conversion_factor
 
+		# The custom field is the operator-facing quantity in warehouse UOM.
+		# ERPNext's native picked_qty remains Stock UOM for reservations and validation.
+		if frappe.get_meta("Pick List Item").has_field("custom_picked_qty_warehouse_uom"):
+			picked_qty_uom = row.get("custom_picked_qty_warehouse_uom")
+			# A new Frappe Float field may arrive as 0 even before the operator
+			# has entered it. Preserve the native picked quantity in that case.
+			if picked_qty_uom is None or (not flt(picked_qty_uom) and flt(row.get("picked_qty"))):
+				picked_qty_uom = flt(row.get("picked_qty")) / conversion_factor
+				row.custom_picked_qty_warehouse_uom = picked_qty_uom
+			row.picked_qty = flt(picked_qty_uom) * conversion_factor
+
 
 class WarehousePickList(PickList):
 	def _fill_batch_warehouses(self):

@@ -20,6 +20,32 @@ def apply():
     ensure_role()
     ensure_workspace_sidebar()
     ensure_desktop_icon()
+    ensure_pick_list_fields()
+
+
+def ensure_pick_list_fields():
+    """Create warehouse-owned input field without changing ERPNext's DocType."""
+    fieldname = "custom_picked_qty_warehouse_uom"
+    if frappe.db.exists("Custom Field", {"dt": "Pick List Item", "fieldname": fieldname}):
+        return "unchanged"
+
+    doc = frappe.get_doc(
+        {
+            "doctype": "Custom Field",
+            "dt": "Pick List Item",
+            "fieldname": fieldname,
+            "label": "Picked Qty (Warehouse UOM)",
+            "fieldtype": "Float",
+            "insert_after": "picked_qty",
+            "in_list_view": 1,
+            "allow_on_submit": 1,
+            "module": "Warehouse App",
+        }
+    )
+    doc.flags.ignore_permissions = 1
+    doc.insert()
+    frappe.clear_cache(doctype="Pick List Item")
+    return "created"
 
 
 def ensure_role():
