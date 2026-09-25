@@ -58,8 +58,32 @@ SIDEBAR_ITEMS = [
 
 def apply():
     ensure_role()
+    ensure_wet_item_field()
     ensure_workspace_sidebar()
     ensure_desktop_icon()
+
+
+def ensure_wet_item_field():
+    """Create the Item flag only when the administrator has not added it."""
+    fieldname = "custom_wet_item"
+    if frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": fieldname}):
+        return "unchanged"
+
+    doc = frappe.get_doc(
+        {
+            "doctype": "Custom Field",
+            "dt": "Item",
+            "fieldname": fieldname,
+            "label": "Wet Item",
+            "fieldtype": "Check",
+            "insert_after": "is_customer_provided_item",
+            "description": "Checked items are separated into the wet Pick List from a Sales Order.",
+        }
+    )
+    doc.flags.ignore_permissions = True
+    doc.insert()
+    frappe.clear_cache(doctype="Item")
+    return "created"
 
 
 def ensure_role():
